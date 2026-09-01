@@ -14,7 +14,7 @@
 .app{display:none;min-height:100vh}.top{height:72px;background:#0b0b0b;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:2}.top strong{color:var(--gold2)}.layout{display:grid;grid-template-columns:240px 1fr}.side{min-height:calc(100vh - 72px);border-right:1px solid var(--line);padding:18px;background:#0d0d0d}.menu{padding:12px;border-radius:8px;color:#ddd;margin:5px 0;cursor:pointer}.menu:hover,.menu.active{background:#241e0d;color:var(--gold2)}.main{padding:28px;max-width:1450px;width:100%;margin:auto}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.stat,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}.stat b{font-size:28px;color:var(--gold2)}.content-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:18px}.panel h3{margin-top:0;color:var(--gold2)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:12px;border-bottom:1px solid #292929}th{color:var(--muted)}.tag{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:#1a1a1a;border:1px solid #333;color:#eee;font-size:12px}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}.dot.gray{background:#8b8b8b}.dot.blue{background:#4da3ff}.dot.yellow{background:#f1c64a}.dot.orange{background:#ff922b}.dot.green{background:#48c774}.dot.red{background:#ff5c5c}
 .legend{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px}.legend-item{display:flex;align-items:center;gap:7px;padding:8px 10px;background:#0d0d0d;border:1px solid #292929;border-radius:999px;font-size:12px;color:#ddd}
-.contact-card{padding:14px;border:1px solid #292929;border-radius:12px;background:#0d0d0d;margin-top:10px;cursor:pointer}.contact-card:hover{border-color:#5a491d}.contact-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.contact-meta{color:var(--muted);font-size:12px;margin-top:6px}.contact-action{color:var(--gold2);font-size:12px;margin-top:8px}.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.formgrid .full{grid-column:1/-1}.smallbtn{background:#191919;border:1px solid #5a491d;color:var(--gold2);padding:10px 14px;border-radius:8px;cursor:pointer}.agenda{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.day{background:#0d0d0d;border:1px solid #292929;border-radius:10px;min-height:180px;padding:10px}.event{background:#5b4711;color:#fff;border-radius:7px;padding:7px;margin-top:8px;font-size:12px}
+.contact-card{padding:14px;border:1px solid #292929;border-radius:12px;background:#0d0d0d;margin-top:10px;cursor:pointer}.contact-card:hover{border-color:#5a491d}.contact-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.contact-meta{color:var(--muted);font-size:12px;margin-top:6px}.contact-action{color:var(--gold2);font-size:12px;margin-top:8px}.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.formgrid .full{grid-column:1/-1}.smallbtn{background:#191919;border:1px solid #5a491d;color:var(--gold2);padding:10px 14px;border-radius:8px;cursor:pointer}.agenda-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px}.agenda-nav{display:flex;gap:8px;align-items:center}.agenda-title{font-size:22px;color:var(--gold2);font-weight:800}.agenda-weekdays,.agenda{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.agenda-weekdays div{color:var(--muted);font-size:12px;text-align:center;padding:7px}.day{background:#0d0d0d;border:1px solid #292929;border-radius:10px;min-height:130px;padding:9px;overflow:hidden}.day.muted{opacity:.38}.day.today{border-color:var(--gold2);box-shadow:0 0 0 1px #5a491d}.day-number{font-weight:800;color:#ddd}.event{border-radius:7px;padding:7px;margin-top:7px;font-size:11px;cursor:pointer;line-height:1.25}.event.andre{background:#3a3112;border-left:3px solid #f1c64a}.event.angelica{background:#1a2b3a;border-left:3px solid #4da3ff}.event.todos{background:#27351f;border-left:3px solid #48c774}.agenda-empty{color:var(--muted);font-size:12px;margin-top:6px}.agenda-list-item{padding:12px;border:1px solid #292929;border-radius:10px;background:#0d0d0d;margin-top:8px}.agenda-list-item strong{color:var(--gold2)}
 @media(max-width:850px){.login{grid-template-columns:1fr}.layout{grid-template-columns:1fr}.side{min-height:auto;display:flex;overflow:auto;gap:8px}.menu{white-space:nowrap}.grid,.content-grid{grid-template-columns:1fr}.agenda{grid-template-columns:1fr 1fr}.top{padding:0 14px}.main{padding:16px}}
 </style>
 
@@ -159,12 +159,38 @@ async function apiPost(dados) {
 </section>
 
 <section id="agenda" class="page" style="display:none">
-  <div class="panel"><h3>Agenda compartilhada — André e Angélica</h3>
-    <div class="agenda">
-      <div class="day"><b>SEG</b><div class="event">10:00 Ligar para Rodeio X</div></div>
-      <div class="day"><b>TER</b><div class="event">14:00 Pesquisa de eventos</div></div>
-      <div class="day"><b>QUA</b></div><div class="day"><b>QUI</b><div class="event">09:00 Reunião</div></div>
-      <div class="day"><b>SEX</b><div class="event">15:00 Retorno negociação</div></div><div class="day"><b>SÁB</b></div><div class="day"><b>DOM</b></div>
+  <div class="panel">
+    <div class="agenda-toolbar">
+      <div><h3 style="margin-bottom:4px">Agenda compartilhada</h3><div style="color:#a6a6a6;font-size:13px">Compromissos do André, da Angélica e compromissos em comum.</div></div>
+      <button class="smallbtn" type="button" onclick="irParaHojeAgenda()">HOJE</button>
+    </div>
+    <div class="agenda-toolbar">
+      <div class="agenda-nav"><button class="smallbtn" type="button" onclick="mudarMesAgenda(-1)">◀</button><div class="agenda-title" id="agendaTituloMes"></div><button class="smallbtn" type="button" onclick="mudarMesAgenda(1)">▶</button></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><span class="tag"><span class="dot yellow"></span>André</span><span class="tag"><span class="dot blue"></span>Angélica</span><span class="tag"><span class="dot green"></span>Todos</span></div>
+    </div>
+    <div class="agenda-weekdays"><div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div></div>
+    <div class="agenda" id="agendaCalendario"></div>
+  </div>
+
+  <div class="content-grid">
+    <div class="panel">
+      <h3>Novo compromisso</h3>
+      <div class="formgrid">
+        <div class="field full"><label>Título</label><input class="input" id="agTitulo" placeholder="Ex.: Ligar para promotor do Rodeio X"></div>
+        <div class="field"><label>Data</label><input class="input" id="agData" type="date"></div>
+        <div class="field"><label>Responsável</label><select class="input" id="agResponsavel"><option value="André">André</option><option value="Angélica">Angélica</option><option value="TODOS">Todos</option></select></div>
+        <div class="field"><label>Hora inicial</label><input class="input" id="agHoraInicio" type="time"></div>
+        <div class="field"><label>Hora final</label><input class="input" id="agHoraFim" type="time"></div>
+        <div class="field"><label>Visível para</label><select class="input" id="agVisivelPara"><option value="TODOS">Todos</option><option value="André">André</option><option value="Angélica">Angélica</option></select></div>
+        <div class="field"><label>Status</label><select class="input" id="agStatus"><option value="PENDENTE">Pendente</option><option value="CONCLUÍDO">Concluído</option><option value="CANCELADO">Cancelado</option></select></div>
+        <div class="field full"><label>Descrição</label><textarea class="input" id="agDescricao" rows="3" placeholder="Detalhes do compromisso"></textarea></div>
+        <div class="field full"><label>Observações</label><textarea class="input" id="agObservacoes" rows="2"></textarea></div>
+        <button class="smallbtn full" type="button" onclick="salvarAgenda()">SALVAR COMPROMISSO</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Próximos compromissos</h3>
+      <div id="agendaProximos">Carregando agenda...</div>
     </div>
   </div>
 </section>
@@ -581,12 +607,89 @@ async function salvarContato(){
   }
 }
 
+
+let agendaCache = [];
+let agendaMesAtual = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+function normalizarChaveAgenda(v){
+  return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/gi,'').toUpperCase();
+}
+function campoAgenda(obj, nomes, padrao=''){
+  const mapa={}; Object.keys(obj||{}).forEach(k=>mapa[normalizarChaveAgenda(k)]=obj[k]);
+  for(const n of nomes){ const v=mapa[normalizarChaveAgenda(n)]; if(v!==undefined && v!==null) return v; }
+  return padrao;
+}
+function dataAgendaISO(v){
+  if(!v) return '';
+  const t=String(v);
+  const m=t.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[0];
+  const d=new Date(v); if(isNaN(d)) return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function dadosAgenda(item){
+  return {id:campoAgenda(item,['ID_AGENDA','ID']),data:dataAgendaISO(campoAgenda(item,['DATA'])),horaInicio:campoAgenda(item,['HORA_INICIO','HORA INICIO']),horaFim:campoAgenda(item,['HORA_FIM','HORA FIM']),titulo:campoAgenda(item,['TITULO','TÍTULO']),descricao:campoAgenda(item,['DESCRICAO','DESCRIÇÃO']),responsavel:campoAgenda(item,['RESPONSAVEL','RESPONSÁVEL'],'TODOS'),visivelPara:campoAgenda(item,['VISIVEL_PARA','VISÍVEL PARA'],'TODOS'),status:campoAgenda(item,['STATUS'],'PENDENTE'),observacoes:campoAgenda(item,['OBSERVACOES','OBSERVAÇÕES'])};
+}
+function classeResponsavelAgenda(r){ const x=String(r||'').toLowerCase(); if(x.includes('angélica')||x.includes('angelica')) return 'angelica'; if(x.includes('andr')) return 'andre'; return 'todos'; }
+function formatarHoraAgenda(v){ return String(v||'').slice(0,5); }
+async function carregarAgenda(){
+  const destino=document.getElementById('agendaCalendario');
+  if(destino) destino.innerHTML='';
+  try{
+    const r=await apiGet('listarAgenda');
+    if(!r.ok) throw new Error(r.message||'Erro ao carregar agenda');
+    agendaCache=(r.dados||[]).map(dadosAgenda).filter(x=>x.data);
+    renderizarAgenda(); renderizarProximosAgenda();
+  }catch(e){ console.error(e); if(destino) destino.innerHTML='<div class="agenda-empty">Não foi possível carregar a agenda.</div>'; }
+}
+function renderizarAgenda(){
+  const el=document.getElementById('agendaCalendario'); if(!el) return;
+  const ano=agendaMesAtual.getFullYear(), mes=agendaMesAtual.getMonth();
+  document.getElementById('agendaTituloMes').textContent=new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(agendaMesAtual).replace(/^./,c=>c.toUpperCase());
+  const primeiro=new Date(ano,mes,1), ultimo=new Date(ano,mes+1,0);
+  const inicio=new Date(ano,mes,1-primeiro.getDay());
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  let html='';
+  for(let i=0;i<42;i++){
+    const d=new Date(inicio); d.setDate(inicio.getDate()+i);
+    const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const fora=d.getMonth()!==mes;
+    const isHoje=d.getTime()===hoje.getTime();
+    const itens=agendaCache.filter(x=>x.data===iso).sort((a,b)=>String(a.horaInicio).localeCompare(String(b.horaInicio)));
+    html+=`<div class="day ${fora?'muted':''} ${isHoje?'today':''}"><div class="day-number">${d.getDate()}</div>`;
+    html+=itens.map(x=>`<div class="event ${classeResponsavelAgenda(x.responsavel)}" title="${escapeHtml(x.descricao||x.observacoes||'')}"><b>${escapeHtml(formatarHoraAgenda(x.horaInicio)||'—')}</b> ${escapeHtml(x.titulo||'Compromisso')}<br><span style="opacity:.8">${escapeHtml(x.responsavel||'Todos')}</span></div>`).join('');
+    html+='</div>';
+  }
+  el.innerHTML=html;
+}
+function renderizarProximosAgenda(){
+  const el=document.getElementById('agendaProximos'); if(!el) return;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const proximos=agendaCache.filter(x=>{const d=new Date(x.data+'T00:00:00'); return d>=hoje && String(x.status||'').toUpperCase()!=='CANCELADO';}).sort((a,b)=>(a.data+a.horaInicio).localeCompare(b.data+b.horaInicio)).slice(0,8);
+  if(!proximos.length){el.innerHTML='<div class="agenda-empty">Nenhum próximo compromisso cadastrado.</div>';return;}
+  el.innerHTML=proximos.map(x=>`<div class="agenda-list-item"><strong>${escapeHtml(x.titulo||'Compromisso')}</strong><div class="contact-meta">📅 ${formatarData(x.data)} ${x.horaInicio?'• '+escapeHtml(formatarHoraAgenda(x.horaInicio)):''} • ${escapeHtml(x.responsavel||'Todos')}</div>${x.descricao?`<div class="contact-action">${escapeHtml(x.descricao)}</div>`:''}</div>`).join('');
+}
+function mudarMesAgenda(delta){agendaMesAtual=new Date(agendaMesAtual.getFullYear(),agendaMesAtual.getMonth()+delta,1);renderizarAgenda();}
+function irParaHojeAgenda(){const d=new Date();agendaMesAtual=new Date(d.getFullYear(),d.getMonth(),1);renderizarAgenda();}
+async function salvarAgenda(){
+  const titulo=document.getElementById('agTitulo').value.trim(), data=document.getElementById('agData').value;
+  if(!titulo||!data){alert('Informe pelo menos o título e a data do compromisso.');return;}
+  const botao=document.querySelector('#agenda button[onclick="salvarAgenda()"]'), original=botao.textContent; botao.disabled=true;botao.textContent='SALVANDO...';
+  try{
+    const r=await apiPost({acao:'salvarAgenda',titulo,data,horaInicio:document.getElementById('agHoraInicio').value,horaFim:document.getElementById('agHoraFim').value,descricao:document.getElementById('agDescricao').value.trim(),responsavel:document.getElementById('agResponsavel').value,visivelPara:document.getElementById('agVisivelPara').value,status:document.getElementById('agStatus').value,observacoes:document.getElementById('agObservacoes').value.trim()});
+    if(!r.ok){alert(r.message||'Não foi possível salvar o compromisso.');return;}
+    ['agTitulo','agData','agHoraInicio','agHoraFim','agDescricao','agObservacoes'].forEach(id=>document.getElementById(id).value='');
+    alert(r.message||'Compromisso salvo.'); await carregarAgenda();
+  }catch(e){console.error(e);alert('Erro ao salvar o compromisso. Verifique a conexão com o Apps Script.');}
+  finally{botao.disabled=false;botao.textContent=original;}
+}
+
 function show(id){
   document.querySelectorAll('.page').forEach(p=>p.style.display='none');
   document.getElementById(id).style.display='block';
   document.querySelectorAll('.menu').forEach(m=>m.classList.remove('active'));
   [...document.querySelectorAll('.menu')].find(m=>m.getAttribute('onclick').includes(id))?.classList.add('active');
   if(id === 'eventos' && currentUser) carregarEventos();
+  if(id === 'agenda' && currentUser) carregarAgenda();
 
   if(id === 'contatos' && currentUser){
     const responsavel = document.getElementById('ctResponsavel');
