@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secretaria Granemann</title>
+<style>
+:root{--bg:#090909;--panel:#121212;--panel2:#171717;--gold:#c9a227;--gold2:#f1c64a;--text:#f5f5f5;--muted:#a6a6a6;--line:#2a2a2a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#242424 0,#090909 42%);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+.login{min-height:100vh;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;max-width:1100px;margin:auto;padding:40px}
+.brand{text-align:center}.brand img{width:min(360px,80%);filter:drop-shadow(0 10px 30px #000)}.brand h1{font-size:34px;margin:20px 0 8px;letter-spacing:2px}.brand p{color:var(--gold2);letter-spacing:1px}
+.card{background:linear-gradient(180deg,#171717,#0d0d0d);border:1px solid #40351a;border-radius:18px;padding:32px;box-shadow:0 20px 60px #000}
+.card h2{margin-top:0}.input{width:100%;background:#0b0b0b;border:1px solid #373737;color:#fff;padding:15px;border-radius:10px;margin:8px 0 16px;font-size:16px}.btn{width:100%;padding:15px;border:0;border-radius:10px;background:linear-gradient(90deg,var(--gold),var(--gold2));font-weight:800;color:#171717;font-size:16px;cursor:pointer}.demo{color:var(--muted);font-size:12px;margin-top:14px}
+.app{display:none;min-height:100vh}.top{height:72px;background:#0b0b0b;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:2}.top strong{color:var(--gold2)}.layout{display:grid;grid-template-columns:240px 1fr}.side{min-height:calc(100vh - 72px);border-right:1px solid var(--line);padding:18px;background:#0d0d0d}.menu{padding:12px;border-radius:8px;color:#ddd;margin:5px 0;cursor:pointer}.menu:hover,.menu.active{background:#241e0d;color:var(--gold2)}.main{padding:28px;max-width:1450px;width:100%;margin:auto}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.stat,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}.stat b{font-size:28px;color:var(--gold2)}.content-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:18px}.panel h3{margin-top:0;color:var(--gold2)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:12px;border-bottom:1px solid #292929}th{color:var(--muted)}.tag{display:inline-block;padding:6px 9px;border-radius:999px;background:#2a230d;color:var(--gold2);font-size:12px}.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.formgrid .full{grid-column:1/-1}.smallbtn{background:#191919;border:1px solid #5a491d;color:var(--gold2);padding:10px 14px;border-radius:8px;cursor:pointer}.agenda{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.day{background:#0d0d0d;border:1px solid #292929;border-radius:10px;min-height:180px;padding:10px}.event{background:#5b4711;color:#fff;border-radius:7px;padding:7px;margin-top:8px;font-size:12px}
+@media(max-width:850px){.login{grid-template-columns:1fr}.layout{grid-template-columns:1fr}.side{min-height:auto;display:flex;overflow:auto;gap:8px}.menu{white-space:nowrap}.grid,.content-grid{grid-template-columns:1fr}.agenda{grid-template-columns:1fr 1fr}.top{padding:0 14px}.main{padding:16px}}
+</style>
+</head>
+<body>
+<section class="login" id="loginScreen">
+  <div class="brand">
+    <img src="logo_secretaria_granemann.jpg" alt="Secretaria Granemann">
+    <h1>SECRETARIA GRANEMANN</h1>
+    <p>ORGANIZAÇÃO, FOCO E RESULTADOS</p>
+  </div>
+  <div class="card">
+    <h2>Acesso ao Sistema</h2>
+    <label>Usuário</label><input class="input" id="user" placeholder="Digite seu usuário">
+    <label>Senha</label><input class="input" id="pass" type="password" placeholder="Digite sua senha">
+    <button class="btn" onclick="login()">ENTRAR</button>
+    <div class="demo">Versão inicial. A validação real será ligada ao Google Sheets/Apps Script.</div>
+  </div>
+</section>
+
+<section class="app" id="app">
+<header class="top">
+  <div>🐎 <strong>SECRETARIA GRANEMANN</strong></div>
+  <div id="welcome"></div>
+</header>
+<div class="layout">
+<nav class="side">
+  <div class="menu active" onclick="show('dashboard')">⌂ Painel Inicial</div>
+  <div class="menu" onclick="show('eventos')">🏇 Eventos / Oportunidades</div>
+  <div class="menu" onclick="show('contatos')">☎ Contatos</div>
+  <div class="menu" onclick="show('agenda')">▣ Agenda</div>
+  <div class="menu" onclick="show('tarefas')">✓ Tarefas</div>
+</nav>
+<main class="main">
+<section id="dashboard" class="page">
+  <h1>Olá, <span id="nameGold" style="color:#f1c64a"></span> 👋</h1>
+  <div class="grid">
+    <div class="stat"><b>12</b><br>Aguardando contato</div>
+    <div class="stat"><b>5</b><br>Aguardando resposta</div>
+    <div class="stat"><b>3</b><br>Negociações</div>
+    <div class="stat"><b>8</b><br>Fechados</div>
+  </div>
+  <div class="content-grid">
+    <div class="panel"><h3>Próximos compromissos</h3>
+      <p>📞 Hoje 16:00 — Ligar para João — Rodeio X</p>
+      <p>📅 Amanhã 10:00 — Reunião com promotor</p>
+      <p>🐎 Sexta 09:00 — Retorno negociação</p>
+    </div>
+    <div class="panel"><h3>Novidades da equipe</h3>
+      <p>Angélica cadastrou 3 novos eventos.</p>
+      <p>André registrou um novo contato.</p>
+    </div>
+  </div>
+</section>
+
+<section id="eventos" class="page" style="display:none">
+  <div class="panel">
+    <h3>Novo evento / oportunidade</h3>
+    <div class="formgrid">
+      <input class="input" placeholder="Nome do evento">
+      <input class="input" placeholder="Cidade / UF">
+      <input class="input" placeholder="Data do evento">
+      <input class="input" placeholder="Promotor / responsável">
+      <input class="input" placeholder="Telefone">
+      <input class="input" placeholder="Instagram">
+      <textarea class="input full" rows="3" placeholder="Observações iniciais"></textarea>
+      <button class="smallbtn">SALVAR EVENTO</button>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:18px">
+    <h3>Eventos cadastrados</h3>
+    <table><thead><tr><th>Evento</th><th>Cidade</th><th>Data</th><th>Contato</th><th>Status</th></tr></thead>
+    <tbody><tr><td>Rodeio Exemplo</td><td>Lages / SC</td><td>15/10/2026</td><td>João da Silva</td><td><span class="tag">Aguardando contato</span></td></tr></tbody></table>
+  </div>
+</section>
+
+<section id="contatos" class="page" style="display:none">
+  <div class="panel"><h3>Registrar contato</h3>
+    <div class="formgrid">
+      <input class="input" placeholder="Evento">
+      <input class="input" placeholder="Pessoa com quem falou">
+      <input class="input" placeholder="Data e horário">
+      <select class="input"><option>Telefone</option><option>WhatsApp</option><option>Instagram</option><option>Presencial</option></select>
+      <select class="input"><option>Contato realizado</option><option>Aguardando resposta</option><option>Interessado</option><option>Negociação</option><option>Fechado</option><option>Não interessado</option></select>
+      <input class="input" placeholder="Data do próximo retorno">
+      <textarea class="input full" rows="4" placeholder="Ex.: Contato feito, apresentou o sistema. Ficou de dar resposta."></textarea>
+      <button class="smallbtn">SALVAR CONTATO</button>
+    </div>
+  </div>
+</section>
+
+<section id="agenda" class="page" style="display:none">
+  <div class="panel"><h3>Agenda compartilhada — André e Angélica</h3>
+    <div class="agenda">
+      <div class="day"><b>SEG</b><div class="event">10:00 Ligar para Rodeio X</div></div>
+      <div class="day"><b>TER</b><div class="event">14:00 Pesquisa de eventos</div></div>
+      <div class="day"><b>QUA</b></div><div class="day"><b>QUI</b><div class="event">09:00 Reunião</div></div>
+      <div class="day"><b>SEX</b><div class="event">15:00 Retorno negociação</div></div><div class="day"><b>SÁB</b></div><div class="day"><b>DOM</b></div>
+    </div>
+  </div>
+</section>
+
+<section id="tarefas" class="page" style="display:none">
+  <div class="panel"><h3>Tarefas</h3>
+    <p>☐ Pesquisar novos rodeios — Angélica</p>
+    <p>☐ Entrar em contato com Rodeio X — André</p>
+    <p>☐ Aguardar resposta do promotor — André</p>
+  </div>
+</section>
+</main></div>
+</section>
+
+<script>
+let currentUser = "";
+function login(){
+  const u=document.getElementById('user').value.trim().toLowerCase();
+  const p=document.getElementById('pass').value.trim();
+  if(!u || !p){alert('Informe usuário e senha.');return;}
+  // Demonstração visual. Na integração final esta função consultará a aba USUARIOS.
+  currentUser = u.includes('angel') ? 'Angélica' : 'André';
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('welcome').textContent=currentUser+' • Equipe Secretaria Granemann';
+  document.getElementById('nameGold').textContent=currentUser;
+}
+function show(id){
+  document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+  document.getElementById(id).style.display='block';
+  document.querySelectorAll('.menu').forEach(m=>m.classList.remove('active'));
+  [...document.querySelectorAll('.menu')].find(m=>m.getAttribute('onclick').includes(id))?.classList.add('active');
+}
+</script>
+</body></html>
