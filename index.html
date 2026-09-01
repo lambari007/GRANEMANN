@@ -74,20 +74,18 @@ async function apiPost(dados) {
 <section id="dashboard" class="page">
   <h1>Olá, <span id="nameGold" style="color:#f1c64a"></span> 👋</h1>
   <div class="grid">
-    <div class="stat"><b>12</b><br>Aguardando contato</div>
-    <div class="stat"><b>5</b><br>Aguardando resposta</div>
-    <div class="stat"><b>3</b><br>Negociações</div>
-    <div class="stat"><b>8</b><br>Fechados</div>
+    <div class="stat"><b id="dashNovo">—</b><br>Aguardando contato</div>
+    <div class="stat"><b id="dashResposta">—</b><br>Aguardando resposta</div>
+    <div class="stat"><b id="dashNegociacao">—</b><br>Negociações</div>
+    <div class="stat"><b id="dashFechado">—</b><br>Fechados</div>
   </div>
   <div class="content-grid">
     <div class="panel"><h3>Próximos compromissos</h3>
-      <p>📞 Hoje 16:00 — Ligar para João — Rodeio X</p>
-      <p>📅 Amanhã 10:00 — Reunião com promotor</p>
-      <p>🐎 Sexta 09:00 — Retorno negociação</p>
+      <div id="dashboardProximos">Carregando compromissos...</div>
     </div>
     <div class="panel"><h3>Novidades da equipe</h3>
-      <p>Angélica cadastrou 3 novos eventos.</p>
-      <p>André registrou um novo contato.</p>
+      <p>Acompanhe aqui os principais números e próximos compromissos da Secretaria.</p>
+      <p class="contact-meta">Os dados são atualizados automaticamente conforme os eventos e contatos cadastrados.</p>
     </div>
   </div>
 </section>
@@ -242,6 +240,7 @@ async function login(){
       currentUser + (currentPerfil ? ' • ' + currentPerfil : '') + ' • Secretaria Granemann';
     document.getElementById('nameGold').textContent = currentUser;
     await carregarEventos();
+    await carregarDashboard();
   }catch(erro){
     console.error(erro);
     alert('Não foi possível conectar ao sistema. Verifique a publicação do Apps Script.');
@@ -608,6 +607,24 @@ async function salvarContato(){
 }
 
 
+async function carregarDashboard(){
+  try{
+    const [evResp, agResp] = await Promise.all([apiGet('listarEventos'), apiGet('listarAgenda')]);
+    const eventos = evResp.ok ? (evResp.eventos||[]) : [];
+    const agenda = agResp.ok ? (agResp.dados||[]).map(dadosAgenda).filter(x=>x.data) : [];
+    const contar = alvo => eventos.filter(ev=>normalizarStatus(dadosEvento(ev).status)===alvo).length;
+    document.getElementById('dashNovo').textContent=contar('NOVO');
+    document.getElementById('dashResposta').textContent=contar('AGUARDANDO RESPOSTA');
+    document.getElementById('dashNegociacao').textContent=contar('NEGOCIAÇÃO');
+    document.getElementById('dashFechado').textContent=contar('FECHADO');
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    const proximos=agenda.filter(x=>new Date(x.data+'T00:00:00')>=hoje && normalizarChaveAgenda(x.status)!=='CANCELADO').sort((a,b)=>(a.data+a.horaInicio).localeCompare(b.data+b.horaInicio)).slice(0,5);
+    const el=document.getElementById('dashboardProximos');
+    if(el) el.innerHTML=proximos.length ? proximos.map(x=>`<div class="agenda-list-item"><strong>${escapeHtml(x.titulo||'Compromisso')}</strong><div class="contact-meta">📅 ${formatarData(x.data)} ${x.horaInicio?'• '+escapeHtml(formatarHoraAgenda(x.horaInicio)):''} • ${escapeHtml(x.responsavel||'Todos')}</div></div>`).join('') : '<p>Nenhum próximo compromisso cadastrado.</p>';
+  }catch(e){console.error(e);}
+}
+
+
 let agendaCache = [];
 let agendaMesAtual = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
@@ -641,6 +658,15 @@ async function carregarAgenda(){
     renderizarAgenda(); renderizarProximosAgenda();
   }catch(e){ console.error(e); if(destino) destino.innerHTML='<div class="agenda-empty">Não foi possível carregar a agenda.</div>'; }
 }
+function agendaFiltrada(){
+  const rf=normalizarChaveAgenda(document.getElementById('agendaFiltroResponsavel')?.value||'');
+  const sf=normalizarChaveAgenda(document.getElementById('agendaFiltroStatus')?.value||'');
+  return agendaCache.filter(x=>{
+    const r=normalizarChaveAgenda(x.responsavel||'TODOS');
+    const st=normalizarChaveAgenda(x.status||'PENDENTE');
+    return (!rf || r===rf || (rf==='TODOS' && r==='TODOS')) && (!sf || st===sf);
+  });
+}
 function renderizarAgenda(){
   const el=document.getElementById('agendaCalendario'); if(!el) return;
   const ano=agendaMesAtual.getFullYear(), mes=agendaMesAtual.getMonth();
@@ -654,7 +680,7 @@ function renderizarAgenda(){
     const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     const fora=d.getMonth()!==mes;
     const isHoje=d.getTime()===hoje.getTime();
-    const itens=agendaCache.filter(x=>x.data===iso).sort((a,b)=>String(a.horaInicio).localeCompare(String(b.horaInicio)));
+    const itens=agendaFiltrada().filter(x=>x.data===iso).sort((a,b)=>String(a.horaInicio).localeCompare(String(b.horaInicio)));
     html+=`<div class="day ${fora?'muted':''} ${isHoje?'today':''}"><div class="day-number">${d.getDate()}</div>`;
     html+=itens.map(x=>`<div class="event ${classeResponsavelAgenda(x.responsavel)}" title="${escapeHtml(x.descricao||x.observacoes||'')}"><b>${escapeHtml(formatarHoraAgenda(x.horaInicio)||'—')}</b> ${escapeHtml(x.titulo||'Compromisso')}<br><span style="opacity:.8">${escapeHtml(x.responsavel||'Todos')}</span></div>`).join('');
     html+='</div>';
@@ -664,7 +690,7 @@ function renderizarAgenda(){
 function renderizarProximosAgenda(){
   const el=document.getElementById('agendaProximos'); if(!el) return;
   const hoje=new Date(); hoje.setHours(0,0,0,0);
-  const proximos=agendaCache.filter(x=>{const d=new Date(x.data+'T00:00:00'); return d>=hoje && String(x.status||'').toUpperCase()!=='CANCELADO';}).sort((a,b)=>(a.data+a.horaInicio).localeCompare(b.data+b.horaInicio)).slice(0,8);
+  const proximos=agendaFiltrada().filter(x=>{const d=new Date(x.data+'T00:00:00'); return d>=hoje && String(x.status||'').toUpperCase()!=='CANCELADO';}).sort((a,b)=>(a.data+a.horaInicio).localeCompare(b.data+b.horaInicio)).slice(0,8);
   if(!proximos.length){el.innerHTML='<div class="agenda-empty">Nenhum próximo compromisso cadastrado.</div>';return;}
   el.innerHTML=proximos.map(x=>`<div class="agenda-list-item"><strong>${escapeHtml(x.titulo||'Compromisso')}</strong><div class="contact-meta">📅 ${formatarData(x.data)} ${x.horaInicio?'• '+escapeHtml(formatarHoraAgenda(x.horaInicio)):''} • ${escapeHtml(x.responsavel||'Todos')}</div>${x.descricao?`<div class="contact-action">${escapeHtml(x.descricao)}</div>`:''}</div>`).join('');
 }
@@ -678,7 +704,7 @@ async function salvarAgenda(){
     const r=await apiPost({acao:'salvarAgenda',titulo,data,horaInicio:document.getElementById('agHoraInicio').value,horaFim:document.getElementById('agHoraFim').value,descricao:document.getElementById('agDescricao').value.trim(),responsavel:document.getElementById('agResponsavel').value,visivelPara:document.getElementById('agVisivelPara').value,status:document.getElementById('agStatus').value,observacoes:document.getElementById('agObservacoes').value.trim()});
     if(!r.ok){alert(r.message||'Não foi possível salvar o compromisso.');return;}
     ['agTitulo','agData','agHoraInicio','agHoraFim','agDescricao','agObservacoes'].forEach(id=>document.getElementById(id).value='');
-    alert(r.message||'Compromisso salvo.'); await carregarAgenda();
+    alert(r.message||'Compromisso salvo.'); await carregarAgenda(); await carregarDashboard();
   }catch(e){console.error(e);alert('Erro ao salvar o compromisso. Verifique a conexão com o Apps Script.');}
   finally{botao.disabled=false;botao.textContent=original;}
 }
@@ -690,6 +716,7 @@ function show(id){
   [...document.querySelectorAll('.menu')].find(m=>m.getAttribute('onclick').includes(id))?.classList.add('active');
   if(id === 'eventos' && currentUser) carregarEventos();
   if(id === 'agenda' && currentUser) carregarAgenda();
+  if(id === 'dashboard' && currentUser) carregarDashboard();
 
   if(id === 'contatos' && currentUser){
     const responsavel = document.getElementById('ctResponsavel');
