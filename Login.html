@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secretaria Granemann</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      background:
+        linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)),
+        linear-gradient(135deg, #151515, #292929);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+      padding: 25px;
+    }
+
+    .login-box {
+      background: rgba(255,255,255,0.97);
+      color: #222;
+      border-radius: 18px;
+      padding: 35px 30px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+      text-align: center;
+    }
+
+    .logo {
+      width: 85px;
+      height: 85px;
+      margin: 0 auto 15px;
+      border-radius: 50%;
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+    }
+
+    h1 {
+      font-size: 25px;
+      margin-bottom: 5px;
+    }
+
+    .subtitulo {
+      color: #777;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    .campo {
+      text-align: left;
+      margin-bottom: 18px;
+    }
+
+    .campo label {
+      display: block;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 7px;
+    }
+
+    .campo input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    .campo input:focus {
+      border-color: #222;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: #111;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #333;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    #mensagem {
+      margin-top: 18px;
+      font-size: 14px;
+      font-weight: bold;
+      min-height: 20px;
+    }
+
+    .erro {
+      color: #c62828;
+    }
+
+    .sucesso {
+      color: #2e7d32;
+    }
+
+    .carregando {
+      margin-top: 12px;
+      color: #777;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="login-container">
+    <div class="login-box">
+
+      <div class="logo">🏇</div>
+
+      <h1>SECRETARIA GRANEMANN</h1>
+
+      <div class="subtitulo">
+        Sistema de Gestão de Rodeios
+      </div>
+
+      <form id="formLogin">
+
+        <div class="campo">
+          <label for="usuario">Usuário</label>
+          <input
+            type="text"
+            id="usuario"
+            placeholder="Digite seu usuário"
+            autocomplete="username"
+            required>
+        </div>
+
+        <div class="campo">
+          <label for="senha">Senha</label>
+          <input
+            type="password"
+            id="senha"
+            placeholder="Digite sua senha"
+            autocomplete="current-password"
+            required>
+        </div>
+
+        <button type="submit" id="btnEntrar">
+          ENTRAR
+        </button>
+
+      </form>
+
+      <div id="mensagem"></div>
+
+    </div>
+  </div>
+
+  <script>
+    const formulario = document.getElementById('formLogin');
+    const botao = document.getElementById('btnEntrar');
+    const mensagem = document.getElementById('mensagem');
+
+    formulario.addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const usuario = document.getElementById('usuario').value;
+      const senha = document.getElementById('senha').value;
+
+      botao.disabled = true;
+      botao.textContent = 'ENTRANDO...';
+
+      mensagem.className = 'carregando';
+      mensagem.textContent = 'Verificando acesso...';
+
+      google.script.run
+        .withSuccessHandler(function(resultado) {
+
+          if (resultado.sucesso) {
+
+            mensagem.className = 'sucesso';
+            mensagem.textContent = 'Acesso autorizado!';
+
+            sessionStorage.setItem(
+              'usuario',
+              JSON.stringify(resultado)
+            );
+
+            setTimeout(function() {
+              document.body.innerHTML =
+                '<div style="' +
+                'font-family:Arial;' +
+                'display:flex;' +
+                'align-items:center;' +
+                'justify-content:center;' +
+                'height:100vh;' +
+                'background:#111;' +
+                'color:white;' +
+                'text-align:center;' +
+                '">' +
+                '<div>' +
+                '<div style="font-size:50px;">🏇</div>' +
+                '<h1>Bem-vindo!</h1>' +
+                '<p style="margin-top:10px;">' +
+                resultado.nome +
+                '</p>' +
+                '<p style="margin-top:20px;color:#aaa;">' +
+                'Sistema carregando...' +
+                '</p>' +
+                '</div>' +
+                '</div>';
+            }, 700);
+
+          } else {
+
+            mensagem.className = 'erro';
+            mensagem.textContent = resultado.mensagem;
+
+            botao.disabled = false;
+            botao.textContent = 'ENTRAR';
+          }
+        })
+        .withFailureHandler(function(erro) {
+
+          mensagem.className = 'erro';
+          mensagem.textContent = 'Erro ao conectar ao sistema.';
+
+          botao.disabled = false;
+          botao.textContent = 'ENTRAR';
+
+          console.error(erro);
+        })
+        .fazerLogin(usuario, senha);
+    });
+  </script>
+
+</body>
+</html>
