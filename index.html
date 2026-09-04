@@ -1,421 +1,1510 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Secretaria Granemann</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+<title>Secretaria Granemann</title>
 
-    body {
-      font-family: Arial, sans-serif;
-      min-height: 100vh;
-      background:
-        linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)),
-        linear-gradient(135deg, #151515, #292929);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-    }
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-    .login-container {
-      width: 100%;
-      max-width: 420px;
-      padding: 25px;
-    }
+body {
+  font-family: Arial, sans-serif;
+  background: #f3f4f6;
+  color: #222;
+}
 
-    .login-box {
-      background: rgba(255,255,255,0.97);
-      color: #222;
-      border-radius: 18px;
-      padding: 35px 30px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.45);
-      text-align: center;
-    }
+/* =========================
+   LOGIN
+========================= */
 
-    .logo {
-      width: 85px;
-      height: 85px;
-      margin: 0 auto 15px;
-      border-radius: 50%;
-      background: #111;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 38px;
-    }
+#telaLogin {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(rgba(0,0,0,.7), rgba(0,0,0,.7)),
+    linear-gradient(135deg,#111,#333);
+}
 
-    h1 {
-      font-size: 25px;
-      margin-bottom: 5px;
-    }
+.login-box {
+  width: 100%;
+  max-width: 420px;
+  margin: 20px;
+  padding: 35px 30px;
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.4);
+  text-align: center;
+}
 
-    .subtitulo {
-      color: #777;
-      font-size: 14px;
-      margin-bottom: 30px;
-    }
+.logo {
+  width: 85px;
+  height: 85px;
+  margin: auto auto 15px;
+  border-radius: 50%;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+}
 
-    .campo {
-      text-align: left;
-      margin-bottom: 18px;
-    }
+.login-box h1 {
+  font-size: 24px;
+}
 
-    .campo label {
-      display: block;
-      font-weight: bold;
-      font-size: 14px;
-      margin-bottom: 7px;
-    }
+.subtitulo {
+  margin: 7px 0 25px;
+  color: #777;
+}
 
-    .campo input {
-      width: 100%;
-      padding: 14px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      font-size: 16px;
-      outline: none;
-    }
+.campo {
+  text-align: left;
+  margin-bottom: 16px;
+}
 
-    .campo input:focus {
-      border-color: #222;
-    }
+.campo label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 7px;
+}
 
-    button {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 10px;
-      background: #111;
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.2s;
-    }
+.campo input,
+.campo select {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #ccc;
+  border-radius: 9px;
+  font-size: 15px;
+}
 
-    button:hover {
-      background: #333;
-    }
+button {
+  border: 0;
+  border-radius: 9px;
+  padding: 13px 18px;
+  background: #111;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-    button:disabled {
-      opacity: 0.6;
-      cursor: wait;
-    }
+button:hover {
+  background: #333;
+}
 
-    #mensagem {
-      margin-top: 18px;
-      font-size: 14px;
-      font-weight: bold;
-      min-height: 20px;
-    }
+.btn-full {
+  width: 100%;
+}
 
-    .erro {
-      color: #c62828;
-    }
+#mensagemLogin {
+  margin-top: 15px;
+  font-weight: bold;
+}
 
-    .sucesso {
-      color: #2e7d32;
-    }
+.erro {
+  color: #c62828;
+}
 
-    .carregando {
-      margin-top: 12px;
-      color: #777;
-      font-size: 13px;
-    }
-  </style>
+.sucesso {
+  color: #2e7d32;
+}
+
+/* =========================
+   SISTEMA
+========================= */
+
+#sistema {
+  display: none;
+  min-height: 100vh;
+}
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 240px;
+  background: #111;
+  color: white;
+  padding: 25px 15px;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  text-align: center;
+  padding-bottom: 25px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 20px;
+}
+
+.sidebar-logo div {
+  font-size: 38px;
+}
+
+.sidebar-logo h2 {
+  font-size: 17px;
+  margin-top: 8px;
+}
+
+.menu button {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 7px;
+  background: transparent;
+  color: #ddd;
+  font-size: 15px;
+}
+
+.menu button:hover,
+.menu button.ativo {
+  background: #333;
+  color: white;
+}
+
+.btn-sair {
+  margin-top: 25px;
+  background: #8b0000 !important;
+}
+
+.conteudo {
+  margin-left: 240px;
+  padding: 30px;
+}
+
+.topo {
+  background: white;
+  padding: 20px 25px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topo h1 {
+  font-size: 25px;
+}
+
+.usuario-logado {
+  color: #666;
+}
+
+/* =========================
+   PÁGINAS
+========================= */
+
+.pagina {
+  display: none;
+}
+
+.pagina.ativa {
+  display: block;
+}
+
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0,0,0,.08);
+  margin-bottom: 20px;
+}
+
+.card h2 {
+  margin-bottom: 20px;
+}
+
+.grid-form {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.grid-form .campo-full {
+  grid-column: 1 / -1;
+}
+
+.acoes {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.btn-secundario {
+  background: #666;
+}
+
+.btn-perigo {
+  background: #9b1c1c;
+}
+
+/* =========================
+   LISTA RODEIOS
+========================= */
+
+.lista-rodeios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+  gap: 18px;
+}
+
+.rodeio-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.rodeio-conteudo {
+  padding: 18px;
+}
+
+.rodeio-conteudo h3 {
+  margin-bottom: 10px;
+}
+
+.rodeio-info {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.rodeio-acoes {
+  display: flex;
+  gap: 7px;
+  margin-top: 15px;
+}
+
+.rodeio-acoes button {
+  flex: 1;
+  font-size: 12px;
+  padding: 9px;
+}
+
+.programacao-preview {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+/* =========================
+   RESPONSIVO
+========================= */
+
+@media (max-width: 800px) {
+
+  .sidebar {
+    position: relative;
+    width: 100%;
+  }
+
+  .conteudo {
+    margin-left: 0;
+    padding: 15px;
+  }
+
+  .grid-form {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-form .campo-full {
+    grid-column: auto;
+  }
+
+  .topo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+</style>
 </head>
 
 <body>
 
-  <div class="login-container">
-    <div class="login-box">
+<!-- =========================
+     LOGIN
+========================= -->
 
-      <div class="logo">🏇</div>
+<div id="telaLogin">
 
-      <h1>SECRETARIA GRANEMANN</h1>
+  <div class="login-box">
 
-      <div class="subtitulo">
-        Sistema de Gestão de Rodeios
+    <div class="logo">🏇</div>
+
+    <h1>SECRETARIA GRANEMANN</h1>
+
+    <div class="subtitulo">
+      Sistema de Gestão de Rodeios
+    </div>
+
+    <form id="formLogin">
+
+      <div class="campo">
+        <label>Usuário</label>
+        <input
+          type="text"
+          id="usuario"
+          autocomplete="username"
+          required>
       </div>
 
-      <form id="formLogin">
+      <div class="campo">
+        <label>Senha</label>
+        <input
+          type="password"
+          id="senha"
+          autocomplete="current-password"
+          required>
+      </div>
 
-        <div class="campo">
-          <label for="usuario">Usuário</label>
-          <input
-            type="text"
-            id="usuario"
-            placeholder="Digite seu usuário"
-            autocomplete="username"
-            required>
-        </div>
+      <button
+        class="btn-full"
+        id="btnEntrar"
+        type="submit">
+        ENTRAR
+      </button>
 
-        <div class="campo">
-          <label for="senha">Senha</label>
-          <input
-            type="password"
-            id="senha"
-            placeholder="Digite sua senha"
-            autocomplete="current-password"
-            required>
-        </div>
+    </form>
 
-        <button type="submit" id="btnEntrar">
-          ENTRAR
-        </button>
+    <div id="mensagemLogin"></div>
 
-      </form>
-
-      <div id="mensagem"></div>
-
-    </div>
   </div>
 
-
-  <script>
-
-    /*
-     * URL DO GOOGLE APPS SCRIPT
-     *
-     * Esta é a API que conversa com a planilha.
-     */
-    const API_URL =
-      'https://script.google.com/macros/s/AKfycbzirjhSqXp6-iL21Cc99bpZtPxeNUFnYdxSuEPgz9DExjm-rWirBkyoHzhyFA6yjdJg/exec';
+</div>
 
 
-    const formulario =
-      document.getElementById('formLogin');
+<!-- =========================
+     SISTEMA
+========================= -->
+
+<div id="sistema">
+
+  <!-- MENU ESQUERDO -->
+
+  <aside class="sidebar">
+
+    <div class="sidebar-logo">
+
+      <div>🏇</div>
+
+      <h2>SECRETARIA<br>GRANEMANN</h2>
+
+    </div>
+
+    <div class="menu">
+
+      <button onclick="abrirPagina('inicio', this)" class="ativo">
+        🏠 Início
+      </button>
+
+      <button onclick="abrirPagina('rodeios', this)">
+        🏇 Rodeios
+      </button>
+
+      <button onclick="abrirPagina('lacadores', this)">
+        🤠 Laçadores
+      </button>
+
+      <button onclick="abrirPagina('inscricoes', this)">
+        📋 Inscrições
+      </button>
+
+      <button onclick="abrirPagina('financeiro', this)">
+        💰 Financeiro
+      </button>
+
+      <button onclick="abrirPagina('premiacoes', this)">
+        🏆 Premiações
+      </button>
+
+      <button onclick="abrirPagina('relatorios', this)">
+        📊 Relatórios
+      </button>
+
+      <button onclick="abrirPagina('agenda', this)">
+        📅 Agenda
+      </button>
+
+      <button onclick="abrirPagina('configuracoes', this)">
+        ⚙️ Configurações
+      </button>
+
+      <button
+        class="btn-sair"
+        onclick="sairSistema()">
+        🚪 Sair
+      </button>
+
+    </div>
+
+  </aside>
+
+
+  <!-- CONTEÚDO -->
+
+  <main class="conteudo">
+
+    <div class="topo">
+
+      <h1 id="tituloPagina">
+        Início
+      </h1>
+
+      <div class="usuario-logado">
+        Usuário:
+        <strong id="nomeUsuario"></strong>
+      </div>
+
+    </div>
+
+
+    <!-- INÍCIO -->
+
+    <section
+      id="pagina-inicio"
+      class="pagina ativa">
+
+      <div class="card">
+
+        <h2>Bem-vindo à Secretaria Granemann</h2>
+
+        <p>
+          Sistema de Gestão de Rodeios.
+        </p>
+
+        <p style="margin-top:10px;color:#777;">
+          Utilize o menu ao lado para acessar as funções do sistema.
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- RODEIOS -->
+
+    <section
+      id="pagina-rodeios"
+      class="pagina">
+
+      <div class="card">
+
+        <h2>🏇 Cadastro de Rodeio</h2>
+
+        <form id="formRodeio">
+
+          <input
+            type="hidden"
+            id="rodeioId">
+
+          <div class="grid-form">
+
+            <div class="campo campo-full">
+
+              <label>Nome do evento</label>
+
+              <input
+                type="text"
+                id="nomeEvento"
+                placeholder="Ex.: 25º Rodeio Crioulo"
+                required>
+
+            </div>
+
+
+            <div class="campo">
+
+              <label>Organizador</label>
+
+              <input
+                type="text"
+                id="organizador"
+                required>
+
+            </div>
+
+
+            <div class="campo">
+
+              <label>Telefone para contato</label>
+
+              <input
+                type="text"
+                id="telefone"
+                placeholder="(49) 99999-9999">
+
+            </div>
+
+
+            <div class="campo">
+
+              <label>Cidade</label>
+
+              <input
+                type="text"
+                id="cidade"
+                required>
+
+            </div>
+
+
+            <div class="campo">
+
+              <label>Estado / UF</label>
+
+              <select id="estado" required>
+
+                <option value="">Selecione</option>
+                <option>AC</option>
+                <option>AL</option>
+                <option>AP</option>
+                <option>AM</option>
+                <option>BA</option>
+                <option>CE</option>
+                <option>DF</option>
+                <option>ES</option>
+                <option>GO</option>
+                <option>MA</option>
+                <option>MT</option>
+                <option>MS</option>
+                <option>MG</option>
+                <option>PA</option>
+                <option>PB</option>
+                <option>PR</option>
+                <option>PE</option>
+                <option>PI</option>
+                <option>RJ</option>
+                <option>RN</option>
+                <option>RS</option>
+                <option>RO</option>
+                <option>RR</option>
+                <option>SC</option>
+                <option>SP</option>
+                <option>SE</option>
+                <option>TO</option>
+
+              </select>
+
+            </div>
+
+
+            <div class="campo">
+
+              <label>Data de início</label>
+
+              <input
+                type="date"
+                id="dataInicio"
+                required>
+
+            </div>
+
+
+            <div class="campo">
+
+              <label>Data de fim</label>
+
+              <input
+                type="date"
+                id="dataFim"
+                required>
+
+            </div>
+
+
+            <div class="campo campo-full">
+
+              <label>
+                Foto da programação
+              </label>
+
+              <input
+                type="file"
+                id="fotoProgramacao"
+                accept="image/*">
+
+              <small style="display:block;margin-top:6px;color:#777;">
+                A imagem será vinculada ao cadastro do rodeio.
+              </small>
+
+            </div>
+
+          </div>
+
+
+          <div class="acoes">
+
+            <button type="submit">
+              💾 SALVAR RODEIO
+            </button>
+
+            <button
+              type="button"
+              class="btn-secundario"
+              onclick="limparFormularioRodeio()">
+              LIMPAR
+            </button>
+
+          </div>
+
+          <div
+            id="mensagemRodeio"
+            style="margin-top:15px;font-weight:bold;">
+          </div>
+
+        </form>
+
+      </div>
+
+
+      <!-- LISTA -->
+
+      <div class="card">
+
+        <h2>📋 Rodeios cadastrados</h2>
+
+        <div
+          id="listaRodeios"
+          class="lista-rodeios">
+
+          <p style="color:#777;">
+            Carregando rodeios...
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- FUTURAS PÁGINAS -->
+
+    <section id="pagina-lacadores" class="pagina">
+      <div class="card">
+        <h2>🤠 Laçadores</h2>
+        <p>Esta página será construída na próxima etapa.</p>
+      </div>
+    </section>
+
+    <section id="pagina-inscricoes" class="pagina">
+      <div class="card">
+        <h2>📋 Inscrições</h2>
+        <p>Esta página será construída na próxima etapa.</p>
+      </div>
+    </section>
+
+    <section id="pagina-financeiro" class="pagina">
+      <div class="card">
+        <h2>💰 Financeiro</h2>
+        <p>Esta página será construída na próxima etapa.</p>
+      </div>
+    </section>
+
+    <section id="pagina-premiacoes" class="pagina">
+      <div class="card">
+        <h2>🏆 Premiações</h2>
+        <p>Esta página será construída na próxima etapa.</p>
+      </div>
+    </section>
+
+    <section id="pagina-relatorios" class="pagina">
+      <div class="card">
+        <h2>📊 Relatórios</h2>
+        <p>Esta página será construída na próxima etapa.</p>
+      </div>
+    </section>
+
+    <section id="pagina-agenda" class="pagina">
+      <div class="card">
+        <h2>📅 Agenda</h2>
+        <p>Esta página será construída na próxima etapa.</p>
+      </div>
+    </section>
+
+    <section id="pagina-configuracoes" class="pagina">
+      <div class="card">
+        <h2>⚙️ Configurações</h2>
+        <p>Esta página será construída na próxima etapa.</p>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   ENDEREÇO DO APPS SCRIPT
+===================================================== */
+
+const URL_API =
+  'https://script.google.com/macros/s/AKfycbzirjhSqXp6-iL21Cc99bpZtPxeNUFnYdxSuEPgz9DExjm-rWirBkyoHzhyFA6yjdJg/exec';
+
+
+/* =====================================================
+   JSONP
+===================================================== */
+
+function chamarAPI(acao, parametros = {}) {
+
+  return new Promise(function(resolve, reject) {
+
+    const callback =
+      'callback_' +
+      Date.now() +
+      '_' +
+      Math.floor(Math.random() * 10000);
+
+    const script =
+      document.createElement('script');
+
+    const query =
+      new URLSearchParams({
+        acao: acao,
+        callback: callback,
+        ...parametros
+      });
+
+    const tempo =
+      setTimeout(function() {
+
+        cleanup();
+
+        reject(
+          new Error('Tempo limite excedido.')
+        );
+
+      }, 15000);
+
+
+    function cleanup() {
+
+      clearTimeout(tempo);
+
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+
+      try {
+        delete window[callback];
+      } catch(e) {}
+
+    }
+
+
+    window[callback] =
+      function(resultado) {
+
+        cleanup();
+
+        resolve(resultado);
+      };
+
+
+    script.onerror =
+      function() {
+
+        cleanup();
+
+        reject(
+          new Error('Não foi possível conectar ao sistema.')
+        );
+      };
+
+
+    script.src =
+      URL_API + '?' + query.toString();
+
+    document.body.appendChild(script);
+
+  });
+}
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+document
+  .getElementById('formLogin')
+  .addEventListener('submit', async function(event) {
+
+    event.preventDefault();
+
+    const usuario =
+      document.getElementById('usuario')
+        .value
+        .trim();
+
+    const senha =
+      document.getElementById('senha')
+        .value;
 
     const botao =
       document.getElementById('btnEntrar');
 
     const mensagem =
-      document.getElementById('mensagem');
+      document.getElementById('mensagemLogin');
 
 
-    formulario.addEventListener(
-      'submit',
-      function(event) {
+    botao.disabled = true;
+    botao.textContent = 'ENTRANDO...';
 
-        event.preventDefault();
-
-        const usuario =
-          document
-            .getElementById('usuario')
-            .value
-            .trim();
-
-        const senha =
-          document
-            .getElementById('senha')
-            .value;
+    mensagem.className = '';
+    mensagem.textContent =
+      'Verificando acesso...';
 
 
-        if (!usuario || !senha) {
-          mensagem.className = 'erro';
-          mensagem.textContent =
-            'Informe usuário e senha.';
-          return;
-        }
+    try {
+
+      const resultado =
+        await chamarAPI(
+          'login',
+          {
+            usuario: usuario,
+            senha: senha
+          }
+        );
 
 
-        botao.disabled = true;
-        botao.textContent = 'ENTRANDO...';
+      if (resultado.sucesso) {
 
-        mensagem.className = 'carregando';
+        sessionStorage.setItem(
+          'usuario',
+          JSON.stringify(resultado)
+        );
+
+        mensagem.className =
+          'sucesso';
+
         mensagem.textContent =
-          'Verificando acesso...';
+          'Acesso autorizado!';
 
 
-        /*
-         * Criamos um callback único para receber
-         * a resposta JSONP do Apps Script.
-         */
-        const callbackName =
-          'loginCallback_' +
-          Date.now();
-
-
-        window[callbackName] =
-          function(resultado) {
-
-            try {
-
-              if (resultado.sucesso) {
-
-                mensagem.className = 'sucesso';
-
-                mensagem.textContent =
-                  'Acesso autorizado!';
-
-
-                sessionStorage.setItem(
-                  'usuario',
-                  JSON.stringify(resultado)
-                );
-
-
-                setTimeout(function() {
-
-                  document.body.innerHTML =
-
-                    '<div style="' +
-
-                    'font-family:Arial;' +
-
-                    'display:flex;' +
-
-                    'align-items:center;' +
-
-                    'justify-content:center;' +
-
-                    'height:100vh;' +
-
-                    'background:#111;' +
-
-                    'color:white;' +
-
-                    'text-align:center;' +
-
-                    '">' +
-
-                    '<div>' +
-
-                    '<div style="font-size:50px;">🏇</div>' +
-
-                    '<h1>Bem-vindo!</h1>' +
-
-                    '<p style="margin-top:10px;">' +
-
-                    resultado.nome +
-
-                    '</p>' +
-
-                    '<p style="margin-top:20px;color:#aaa;">' +
-
-                    'Sistema carregando...' +
-
-                    '</p>' +
-
-                    '</div>' +
-
-                    '</div>';
-
-                }, 700);
-
-
-              } else {
-
-                mensagem.className = 'erro';
-
-                mensagem.textContent =
-                  resultado.mensagem;
-
-                botao.disabled = false;
-
-                botao.textContent =
-                  'ENTRAR';
-
-              }
-
-            } finally {
-
-              /*
-               * Remove o callback depois da resposta.
-               */
-              delete window[callbackName];
-
-            }
-
-          };
-
-
-        /*
-         * Monta a chamada para o Apps Script.
-         */
-        const script =
-          document.createElement('script');
-
-
-        const url =
-          API_URL +
-
-          '?acao=login' +
-
-          '&usuario=' +
-          encodeURIComponent(usuario) +
-
-          '&senha=' +
-          encodeURIComponent(senha) +
-
-          '&callback=' +
-          callbackName;
-
-
-        script.src = url;
-
-
-        /*
-         * Se houver erro de comunicação.
-         */
-        script.onerror = function() {
-
-          mensagem.className = 'erro';
-
-          mensagem.textContent =
-            'Não foi possível conectar ao servidor.';
-
-          botao.disabled = false;
-
-          botao.textContent =
-            'ENTRAR';
-
-          delete window[callbackName];
-
-        };
-
-
-        document.body.appendChild(script);
-
-
-        /*
-         * Timeout para evitar ficar preso
-         * indefinidamente em "ENTRANDO".
-         */
         setTimeout(function() {
 
-          if (window[callbackName]) {
+          document
+            .getElementById('telaLogin')
+            .style.display = 'none';
 
-            mensagem.className = 'erro';
+          document
+            .getElementById('sistema')
+            .style.display = 'block';
 
-            mensagem.textContent =
-              'Tempo de conexão esgotado.';
+          document
+            .getElementById('nomeUsuario')
+            .textContent =
+            resultado.nome ||
+            resultado.usuario;
 
-            botao.disabled = false;
+          carregarRodeios();
 
-            botao.textContent =
-              'ENTRAR';
+        }, 500);
 
-            delete window[callbackName];
 
-          }
+      } else {
 
-        }, 15000);
+        mensagem.className =
+          'erro';
 
+        mensagem.textContent =
+          resultado.mensagem ||
+          'Usuário ou senha incorretos.';
+
+        botao.disabled = false;
+        botao.textContent = 'ENTRAR';
       }
 
+
+    } catch (erro) {
+
+      console.error(erro);
+
+      mensagem.className =
+        'erro';
+
+      mensagem.textContent =
+        'Erro ao conectar ao sistema.';
+
+      botao.disabled = false;
+      botao.textContent = 'ENTRAR';
+    }
+
+  });
+
+
+/* =====================================================
+   MENU
+===================================================== */
+
+function abrirPagina(nome, botao) {
+
+  document
+    .querySelectorAll('.pagina')
+    .forEach(function(pagina) {
+
+      pagina.classList.remove('ativa');
+
+    });
+
+
+  const pagina =
+    document.getElementById(
+      'pagina-' + nome
     );
 
-  </script>
+
+  if (pagina) {
+    pagina.classList.add('ativa');
+  }
+
+
+  document
+    .querySelectorAll('.menu button')
+    .forEach(function(btn) {
+
+      btn.classList.remove('ativo');
+
+    });
+
+
+  if (botao) {
+    botao.classList.add('ativo');
+  }
+
+
+  const titulos = {
+
+    inicio: 'Início',
+    rodeios: 'Rodeios',
+    lacadores: 'Laçadores',
+    inscricoes: 'Inscrições',
+    financeiro: 'Financeiro',
+    premiacoes: 'Premiações',
+    relatorios: 'Relatórios',
+    agenda: 'Agenda',
+    configuracoes: 'Configurações'
+
+  };
+
+
+  document
+    .getElementById('tituloPagina')
+    .textContent =
+    titulos[nome] || nome;
+
+
+  if (nome === 'rodeios') {
+    carregarRodeios();
+  }
+}
+
+
+/* =====================================================
+   RODEIOS — CARREGAR
+===================================================== */
+
+async function carregarRodeios() {
+
+  const lista =
+    document.getElementById(
+      'listaRodeios'
+    );
+
+  lista.innerHTML =
+    '<p style="color:#777;">Carregando...</p>';
+
+
+  try {
+
+    const resultado =
+      await chamarAPI(
+        'listarrodeios'
+      );
+
+
+    if (!resultado.sucesso) {
+
+      lista.innerHTML =
+        '<p class="erro">' +
+        (resultado.mensagem || 'Erro.') +
+        '</p>';
+
+      return;
+    }
+
+
+    if (!resultado.dados ||
+        resultado.dados.length === 0) {
+
+      lista.innerHTML =
+        '<p style="color:#777;">' +
+        'Nenhum rodeio cadastrado ainda.' +
+        '</p>';
+
+      return;
+    }
+
+
+    lista.innerHTML = '';
+
+
+    resultado.dados.forEach(function(rodeio) {
+
+      const card =
+        document.createElement('div');
+
+      card.className =
+        'rodeio-card';
+
+
+      let imagem = '';
+
+      if (rodeio.fotoProgramacao) {
+
+        imagem =
+          '<img class="programacao-preview" ' +
+          'src="' +
+          escaparHTML(rodeio.fotoProgramacao) +
+          '" ' +
+          'alt="Programação">';
+      }
+
+
+      card.innerHTML =
+
+        imagem +
+
+        '<div class="rodeio-conteudo">' +
+
+        '<h3>' +
+        escaparHTML(rodeio.nomeEvento) +
+        '</h3>' +
+
+        '<div class="rodeio-info">' +
+
+        '<strong>Organizador:</strong> ' +
+        escaparHTML(rodeio.organizador) +
+        '<br>' +
+
+        '<strong>Local:</strong> ' +
+        escaparHTML(rodeio.cidade) +
+        ' - ' +
+        escaparHTML(rodeio.estado) +
+        '<br>' +
+
+        '<strong>Data:</strong> ' +
+        escaparHTML(rodeio.dataInicio) +
+        ' até ' +
+        escaparHTML(rodeio.dataFim) +
+        '<br>' +
+
+        '<strong>Telefone:</strong> ' +
+        escaparHTML(rodeio.telefone || '-') +
+
+        '</div>' +
+
+        '<div class="rodeio-acoes">' +
+
+        '<button onclick="editarRodeio(' +
+        rodeio.id +
+        ')">' +
+        '✏️ Editar' +
+        '</button>' +
+
+        '<button class="btn-perigo" ' +
+        'onclick="excluirRodeio(' +
+        rodeio.id +
+        ')">' +
+        '🗑️ Excluir' +
+        '</button>' +
+
+        '</div>' +
+
+        '</div>';
+
+
+      lista.appendChild(card);
+
+    });
+
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    lista.innerHTML =
+      '<p class="erro">' +
+      'Erro ao carregar os rodeios.' +
+      '</p>';
+  }
+}
+
+
+/* =====================================================
+   RODEIOS — SALVAR
+===================================================== */
+
+document
+  .getElementById('formRodeio')
+  .addEventListener('submit', async function(event) {
+
+    event.preventDefault();
+
+
+    const mensagem =
+      document.getElementById(
+        'mensagemRodeio'
+      );
+
+
+    mensagem.className = '';
+    mensagem.textContent =
+      'Salvando rodeio...';
+
+
+    const dados = {
+
+      nomeEvento:
+        document.getElementById('nomeEvento').value,
+
+      organizador:
+        document.getElementById('organizador').value,
+
+      cidade:
+        document.getElementById('cidade').value,
+
+      estado:
+        document.getElementById('estado').value,
+
+      dataInicio:
+        document.getElementById('dataInicio').value,
+
+      dataFim:
+        document.getElementById('dataFim').value,
+
+      telefone:
+        document.getElementById('telefone').value,
+
+      fotoProgramacao: ''
+
+    };
+
+
+    const id =
+      document.getElementById(
+        'rodeioId'
+      ).value;
+
+
+    try {
+
+      let resultado;
+
+
+      if (id) {
+
+        resultado =
+          await chamarAPI(
+            'editarrodeio',
+            {
+              id: id,
+              ...dados
+            }
+          );
+
+      } else {
+
+        resultado =
+          await chamarAPI(
+            'cadastrarrodeio',
+            dados
+          );
+      }
+
+
+      if (resultado.sucesso) {
+
+        mensagem.className =
+          'sucesso';
+
+        mensagem.textContent =
+          resultado.mensagem;
+
+
+        limparFormularioRodeio();
+
+        carregarRodeios();
+
+
+      } else {
+
+        mensagem.className =
+          'erro';
+
+        mensagem.textContent =
+          resultado.mensagem;
+      }
+
+
+    } catch (erro) {
+
+      console.error(erro);
+
+      mensagem.className =
+        'erro';
+
+      mensagem.textContent =
+        'Erro ao salvar o rodeio.';
+    }
+
+  });
+
+
+/* =====================================================
+   EDITAR
+===================================================== */
+
+async function editarRodeio(id) {
+
+  try {
+
+    const resultado =
+      await chamarAPI(
+        'listarrodeios'
+      );
+
+
+    const rodeio =
+      resultado.dados.find(
+        function(item) {
+
+          return String(item.id) ===
+            String(id);
+
+        }
+      );
+
+
+    if (!rodeio) {
+      alert('Rodeio não encontrado.');
+      return;
+    }
+
+
+    document.getElementById('rodeioId').value =
+      rodeio.id;
+
+    document.getElementById('nomeEvento').value =
+      rodeio.nomeEvento || '';
+
+    document.getElementById('organizador').value =
+      rodeio.organizador || '';
+
+    document.getElementById('cidade').value =
+      rodeio.cidade || '';
+
+    document.getElementById('estado').value =
+      rodeio.estado || '';
+
+    document.getElementById('dataInicio').value =
+      converterDataParaInput(rodeio.dataInicio);
+
+    document.getElementById('dataFim').value =
+      converterDataParaInput(rodeio.dataFim);
+
+    document.getElementById('telefone').value =
+      rodeio.telefone || '';
+
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+
+
+  } catch (erro) {
+
+    alert(
+      'Não foi possível carregar o rodeio.'
+    );
+  }
+}
+
+
+/* =====================================================
+   EXCLUIR
+===================================================== */
+
+async function excluirRodeio(id) {
+
+  if (!confirm(
+    'Tem certeza que deseja excluir este rodeio?'
+  )) {
+    return;
+  }
+
+
+  try {
+
+    const resultado =
+      await chamarAPI(
+        'excluirrodeio',
+        {
+          id: id
+        }
+      );
+
+
+    if (resultado.sucesso) {
+
+      alert(
+        resultado.mensagem
+      );
+
+      carregarRodeios();
+
+    } else {
+
+      alert(
+        resultado.mensagem
+      );
+    }
+
+
+  } catch (erro) {
+
+    alert(
+      'Erro ao excluir o rodeio.'
+    );
+  }
+}
+
+
+/* =====================================================
+   LIMPAR
+===================================================== */
+
+function limparFormularioRodeio() {
+
+  document
+    .getElementById('formRodeio')
+    .reset();
+
+  document
+    .getElementById('rodeioId')
+    .value = '';
+
+}
+
+
+/* =====================================================
+   SAIR
+===================================================== */
+
+function sairSistema() {
+
+  sessionStorage.removeItem(
+    'usuario'
+  );
+
+  location.reload();
+}
+
+
+/* =====================================================
+   UTILITÁRIOS
+===================================================== */
+
+function escaparHTML(valor) {
+
+  return String(valor || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+
+function converterDataParaInput(data) {
+
+  if (!data) return '';
+
+  const partes =
+    String(data).split('/');
+
+  if (partes.length === 3) {
+
+    return (
+      partes[2] +
+      '-' +
+      partes[1].padStart(2,'0') +
+      '-' +
+      partes[0].padStart(2,'0')
+    );
+  }
+
+  return '';
+}
+
+
+/* =====================================================
+   VERIFICA LOGIN SALVO
+===================================================== */
+
+(function() {
+
+  const salvo =
+    sessionStorage.getItem('usuario');
+
+  if (!salvo) {
+    return;
+  }
+
+
+  try {
+
+    const usuario =
+      JSON.parse(salvo);
+
+
+    document
+      .getElementById('telaLogin')
+      .style.display = 'none';
+
+    document
+      .getElementById('sistema')
+      .style.display = 'block';
+
+    document
+      .getElementById('nomeUsuario')
+      .textContent =
+      usuario.nome ||
+      usuario.usuario;
+
+
+  } catch (erro) {
+
+    sessionStorage.removeItem(
+      'usuario'
+    );
+
+  }
+
+})();
+</script>
 
 </body>
-
 </html>
