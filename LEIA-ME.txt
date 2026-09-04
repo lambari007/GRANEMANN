@@ -1,0 +1,48 @@
+SECRETARIA GRANEMANN — ETAPA 1
+=================================
+
+Arquivos:
+- Code.gs
+- Login.html
+
+Planilha:
+- Aba CONFIG
+- Aba USUARIOS
+
+Na aba USUARIOS:
+A1 = ID
+B1 = USUARIOS
+C1 = NOME
+D1 = SENHA
+E1 = NIVEL
+
+Usuário de teste:
+ID: 1
+USUARIOS: LAMBARI
+NOME: LAMBARI
+SENHA: LAMBARI1007
+NIVEL: ADMIN
+
+INSTALAÇÃO
+----------
+1. Abra a planilha Google Sheets.
+2. Vá em Extensões > Apps Script.
+3. No projeto, crie/substitua Code.gs pelo conteúdo de Code.gs deste pacote.
+4. Crie um arquivo HTML chamado Login e cole o conteúdo de Login.html.
+5. Salve.
+6. Vá em Implantar > Nova implantação.
+7. Tipo: Aplicativo da Web.
+8. Executar como: Eu.
+9. Quem tem acesso: conforme a configuração disponível na sua conta; para teste, selecione a opção que permita acesso aos usuários desejados.
+10. Autorize e abra a URL da implantação.
+
+TESTE
+-----
+Usuário: LAMBARI
+Senha: LAMBARI1007
+
+OBSERVAÇÃO
+----------
+Esta é apenas a ETAPA 1. O Sistema.html ainda não foi criado.
+A senha está em texto na planilha somente para o primeiro teste de funcionamento.
+A proteção de senha será melhorada antes de colocar o sistema em produção.
