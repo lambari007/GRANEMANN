@@ -179,83 +179,243 @@
     </div>
   </div>
 
+
   <script>
-    const formulario = document.getElementById('formLogin');
-    const botao = document.getElementById('btnEntrar');
-    const mensagem = document.getElementById('mensagem');
 
-    formulario.addEventListener('submit', function(event) {
-      event.preventDefault();
+    /*
+     * URL DO GOOGLE APPS SCRIPT
+     *
+     * Esta é a API que conversa com a planilha.
+     */
+    const API_URL =
+      'https://script.google.com/macros/s/AKfycbzirjhSqXp6-iL21Cc99bpZtPxeNUFnYdxSuEPgz9DExjm-rWirBkyoHzhyFA6yjdJg/exec';
 
-      const usuario = document.getElementById('usuario').value;
-      const senha = document.getElementById('senha').value;
 
-      botao.disabled = true;
-      botao.textContent = 'ENTRANDO...';
+    const formulario =
+      document.getElementById('formLogin');
 
-      mensagem.className = 'carregando';
-      mensagem.textContent = 'Verificando acesso...';
+    const botao =
+      document.getElementById('btnEntrar');
 
-      google.script.run
-        .withSuccessHandler(function(resultado) {
+    const mensagem =
+      document.getElementById('mensagem');
 
-          if (resultado.sucesso) {
 
-            mensagem.className = 'sucesso';
-            mensagem.textContent = 'Acesso autorizado!';
+    formulario.addEventListener(
+      'submit',
+      function(event) {
 
-            sessionStorage.setItem(
-              'usuario',
-              JSON.stringify(resultado)
-            );
+        event.preventDefault();
 
-            setTimeout(function() {
-              document.body.innerHTML =
-                '<div style="' +
-                'font-family:Arial;' +
-                'display:flex;' +
-                'align-items:center;' +
-                'justify-content:center;' +
-                'height:100vh;' +
-                'background:#111;' +
-                'color:white;' +
-                'text-align:center;' +
-                '">' +
-                '<div>' +
-                '<div style="font-size:50px;">🏇</div>' +
-                '<h1>Bem-vindo!</h1>' +
-                '<p style="margin-top:10px;">' +
-                resultado.nome +
-                '</p>' +
-                '<p style="margin-top:20px;color:#aaa;">' +
-                'Sistema carregando...' +
-                '</p>' +
-                '</div>' +
-                '</div>';
-            }, 700);
+        const usuario =
+          document
+            .getElementById('usuario')
+            .value
+            .trim();
 
-          } else {
+        const senha =
+          document
+            .getElementById('senha')
+            .value;
 
-            mensagem.className = 'erro';
-            mensagem.textContent = resultado.mensagem;
 
-            botao.disabled = false;
-            botao.textContent = 'ENTRAR';
-          }
-        })
-        .withFailureHandler(function(erro) {
+        if (!usuario || !senha) {
+          mensagem.className = 'erro';
+          mensagem.textContent =
+            'Informe usuário e senha.';
+          return;
+        }
+
+
+        botao.disabled = true;
+        botao.textContent = 'ENTRANDO...';
+
+        mensagem.className = 'carregando';
+        mensagem.textContent =
+          'Verificando acesso...';
+
+
+        /*
+         * Criamos um callback único para receber
+         * a resposta JSONP do Apps Script.
+         */
+        const callbackName =
+          'loginCallback_' +
+          Date.now();
+
+
+        window[callbackName] =
+          function(resultado) {
+
+            try {
+
+              if (resultado.sucesso) {
+
+                mensagem.className = 'sucesso';
+
+                mensagem.textContent =
+                  'Acesso autorizado!';
+
+
+                sessionStorage.setItem(
+                  'usuario',
+                  JSON.stringify(resultado)
+                );
+
+
+                setTimeout(function() {
+
+                  document.body.innerHTML =
+
+                    '<div style="' +
+
+                    'font-family:Arial;' +
+
+                    'display:flex;' +
+
+                    'align-items:center;' +
+
+                    'justify-content:center;' +
+
+                    'height:100vh;' +
+
+                    'background:#111;' +
+
+                    'color:white;' +
+
+                    'text-align:center;' +
+
+                    '">' +
+
+                    '<div>' +
+
+                    '<div style="font-size:50px;">🏇</div>' +
+
+                    '<h1>Bem-vindo!</h1>' +
+
+                    '<p style="margin-top:10px;">' +
+
+                    resultado.nome +
+
+                    '</p>' +
+
+                    '<p style="margin-top:20px;color:#aaa;">' +
+
+                    'Sistema carregando...' +
+
+                    '</p>' +
+
+                    '</div>' +
+
+                    '</div>';
+
+                }, 700);
+
+
+              } else {
+
+                mensagem.className = 'erro';
+
+                mensagem.textContent =
+                  resultado.mensagem;
+
+                botao.disabled = false;
+
+                botao.textContent =
+                  'ENTRAR';
+
+              }
+
+            } finally {
+
+              /*
+               * Remove o callback depois da resposta.
+               */
+              delete window[callbackName];
+
+            }
+
+          };
+
+
+        /*
+         * Monta a chamada para o Apps Script.
+         */
+        const script =
+          document.createElement('script');
+
+
+        const url =
+          API_URL +
+
+          '?acao=login' +
+
+          '&usuario=' +
+          encodeURIComponent(usuario) +
+
+          '&senha=' +
+          encodeURIComponent(senha) +
+
+          '&callback=' +
+          callbackName;
+
+
+        script.src = url;
+
+
+        /*
+         * Se houver erro de comunicação.
+         */
+        script.onerror = function() {
 
           mensagem.className = 'erro';
-          mensagem.textContent = 'Erro ao conectar ao sistema.';
+
+          mensagem.textContent =
+            'Não foi possível conectar ao servidor.';
 
           botao.disabled = false;
-          botao.textContent = 'ENTRAR';
 
-          console.error(erro);
-        })
-        .fazerLogin(usuario, senha);
-    });
+          botao.textContent =
+            'ENTRAR';
+
+          delete window[callbackName];
+
+        };
+
+
+        document.body.appendChild(script);
+
+
+        /*
+         * Timeout para evitar ficar preso
+         * indefinidamente em "ENTRANDO".
+         */
+        setTimeout(function() {
+
+          if (window[callbackName]) {
+
+            mensagem.className = 'erro';
+
+            mensagem.textContent =
+              'Tempo de conexão esgotado.';
+
+            botao.disabled = false;
+
+            botao.textContent =
+              'ENTRAR';
+
+            delete window[callbackName];
+
+          }
+
+        }, 15000);
+
+      }
+
+    );
+
   </script>
 
 </body>
+
 </html>
