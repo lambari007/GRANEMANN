@@ -447,9 +447,26 @@ function normalizarStatus(status) {
 // LISTAR RODEIOS
 // =====================================================
 
+function limparCacheDados_(tipo) {
+  try { CacheService.getScriptCache().remove('granemann_' + tipo); } catch (e) {}
+}
+
+function obterCacheDados_(tipo) {
+  try {
+    const bruto = CacheService.getScriptCache().get('granemann_' + tipo);
+    return bruto ? JSON.parse(bruto) : null;
+  } catch (e) { return null; }
+}
+
+function salvarCacheDados_(tipo, dados, segundos) {
+  try { CacheService.getScriptCache().put('granemann_' + tipo, JSON.stringify(dados), segundos || 60); } catch (e) {}
+}
+
 function listarRodeios() {
 
   try {
+    const cache = obterCacheDados_('rodeios');
+    if (cache) return { sucesso: true, dados: cache };
 
     const aba = garantirColunaStatus();
 
@@ -498,6 +515,7 @@ function listarRodeios() {
       });
     }
 
+    salvarCacheDados_('rodeios', resultado, 45);
     return {
       sucesso: true,
       dados: resultado
@@ -658,6 +676,7 @@ function cadastrarRodeio(dados) {
       String(dados.tipoContato || 'Organizador').trim(),
       String(dados.parceiroId || '').trim()
     ]);
+    limparCacheDados_('rodeios');
 
     return {
       sucesso: true,
@@ -757,6 +776,7 @@ function editarRodeio(dados) {
           String(dados.tipoContato || valores[i][16] || 'Organizador').trim(),
           String(dados.parceiroId || valores[i][17] || '').trim()
         ]]);
+        limparCacheDados_('rodeios');
 
         return {
           sucesso: true,
@@ -822,6 +842,7 @@ function alterarStatusRodeio(id, status) {
         // Coluna L = STATUS
         aba.getRange(i + 1, 12)
           .setValue(novoStatus);
+        limparCacheDados_('rodeios');
 
         return {
           sucesso: true,
@@ -876,6 +897,7 @@ function excluirRodeio(id) {
       if (Number(valores[i][0]) === id) {
 
         aba.deleteRow(i + 1);
+        limparCacheDados_('rodeios');
 
         return {
           sucesso: true,
@@ -957,6 +979,8 @@ function valorTexto_(v) {
 
 function listarContratos() {
   try {
+    const cache = obterCacheDados_('contratos');
+    if (cache) return {sucesso:true,dados:cache};
     const aba = obterAbaContratos_();
     const valores = aba.getDataRange().getValues();
     if (valores.length <= 1) return { sucesso: true, dados: [] };
@@ -1000,6 +1024,7 @@ function listarContratos() {
         statusContrato: valores[i][32] || ''
       });
     }
+    salvarCacheDados_('contratos',resultado,30);
     return { sucesso: true, dados: resultado };
   } catch (erro) {
     return { sucesso: false, mensagem: 'Erro ao listar contratos: ' + erro.message, dados: [] };
@@ -1094,6 +1119,7 @@ function cadastrarContrato(dados) {
     const id = proximoIdContrato_();
     aba.appendRow(montarLinhaContrato_(dados, id, null));
     sincronizarFaturamentoContrato_(dados, id);
+    limparCacheDados_('contratos'); limparCacheDados_('financeiro');
     return { sucesso: true, mensagem: 'Contrato salvo com sucesso.', id: id };
   } catch (erro) {
     return { sucesso: false, mensagem: 'Erro ao cadastrar contrato: ' + erro.message };
@@ -1121,6 +1147,7 @@ function editarContrato(dados) {
         novaLinha[34] = usuarioCadastro;
         aba.getRange(linha, 1, 1, CABECALHO_CONTRATOS.length).setValues([novaLinha]);
         sincronizarFaturamentoContrato_(dados, id);
+        limparCacheDados_('contratos'); limparCacheDados_('financeiro');
         return { sucesso: true, mensagem: 'Contrato atualizado com sucesso.' };
       }
     }
@@ -1142,9 +1169,9 @@ function obterAbaParceiros_(){
   if(CABECALHO_PARCEIROS.some((h,i)=>String(c[i]||'').trim()!==h))a.getRange(1,1,1,CABECALHO_PARCEIROS.length).setValues([CABECALHO_PARCEIROS]);
   a.setFrozenRows(1); return a;
 }
-function listarParceiros(){try{const a=obterAbaParceiros_(),v=a.getDataRange().getValues(),d=[];for(let i=1;i<v.length;i++){if(!v[i][0]||!v[i][1])continue;d.push({id:v[i][0],nome:v[i][1]||'',telefone:v[i][2]||'',documento:v[i][3]||'',observacoes:v[i][4]||''});}return{sucesso:true,dados:d};}catch(e){return{sucesso:false,mensagem:'Erro ao listar parceiros: '+e.message,dados:[]};}}
-function cadastrarParceiro(d){try{const nome=valorTexto_(d.nome);if(!nome)return{sucesso:false,mensagem:'Informe o nome do parceiro.'};const a=obterAbaParceiros_(),v=a.getDataRange().getValues();let linha=-1,id='';for(let i=1;i<v.length;i++)if(String(v[i][0])===String(d.id)){linha=i+1;id=v[i][0];break;}if(linha<0)id=proximoIdGenerico_(a);const row=[id,nome,valorTexto_(d.telefone),valorTexto_(d.documento),valorTexto_(d.observacoes),new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];if(linha<0)a.appendRow(row);else a.getRange(linha,1,1,CABECALHO_PARCEIROS.length).setValues([row]);return{sucesso:true,mensagem:'Parceiro salvo com sucesso.',id:id};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar parceiro: '+e.message};}}
-function excluirParceiro(id){try{const a=obterAbaParceiros_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){a.deleteRow(i+1);return{sucesso:true,mensagem:'Parceiro excluído com sucesso.'};}return{sucesso:false,mensagem:'Parceiro não encontrado.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir parceiro: '+e.message};}}
+function listarParceiros(){try{const cache=obterCacheDados_('parceiros');if(cache)return{sucesso:true,dados:cache};const a=obterAbaParceiros_(),v=a.getDataRange().getValues(),d=[];for(let i=1;i<v.length;i++){if(!v[i][0]||!v[i][1])continue;d.push({id:v[i][0],nome:v[i][1]||'',telefone:v[i][2]||'',documento:v[i][3]||'',observacoes:v[i][4]||''});}salvarCacheDados_('parceiros',d,120);return{sucesso:true,dados:d};}catch(e){return{sucesso:false,mensagem:'Erro ao listar parceiros: '+e.message,dados:[]};}}
+function cadastrarParceiro(d){try{const nome=valorTexto_(d.nome);if(!nome)return{sucesso:false,mensagem:'Informe o nome do parceiro.'};const a=obterAbaParceiros_(),v=a.getDataRange().getValues();let linha=-1,id='';for(let i=1;i<v.length;i++)if(String(v[i][0])===String(d.id)){linha=i+1;id=v[i][0];break;}if(linha<0)id=proximoIdGenerico_(a);const row=[id,nome,valorTexto_(d.telefone),valorTexto_(d.documento),valorTexto_(d.observacoes),new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];if(linha<0)a.appendRow(row);else a.getRange(linha,1,1,CABECALHO_PARCEIROS.length).setValues([row]);limparCacheDados_('parceiros');return{sucesso:true,mensagem:'Parceiro salvo com sucesso.',id:id};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar parceiro: '+e.message};}}
+function excluirParceiro(id){try{const a=obterAbaParceiros_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){a.deleteRow(i+1);limparCacheDados_('parceiros');return{sucesso:true,mensagem:'Parceiro excluído com sucesso.'};}return{sucesso:false,mensagem:'Parceiro não encontrado.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir parceiro: '+e.message};}}
 
 // =====================================================
 // COMISSÕES
@@ -1183,8 +1210,8 @@ function listarComissoes(){
     return{sucesso:true,dados:d};
   }catch(e){return{sucesso:false,mensagem:'Erro ao listar comissões: '+e.message,dados:[]};}
 }
-function cadastrarComissao(d){try{const idR=String(d.idRodeio||'').trim(),par=valorTexto_(d.parceiro),val=numeroFinanceiro_(d.valor);if(!idR)return{sucesso:false,mensagem:'Selecione o rodeio.'};if(!par)return{sucesso:false,mensagem:'Informe o parceiro.'};if(val<0)return{sucesso:false,mensagem:'A comissão não pode ser negativa.'};const a=obterAbaComissoes_(),v=a.getDataRange().getValues();let linha=-1,id='';for(let i=1;i<v.length;i++)if(String(v[i][1])===idR){linha=i+1;id=v[i][0];break;}const r=(listarRodeios().dados||[]).find(x=>String(x.id)===idR);if(!r)return{sucesso:false,mensagem:'Rodeio não encontrado.'};const ld=[id||proximoIdGenerico_(a),idR,r.nomeEvento||'',par,val,valorTexto_(d.observacoes),new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];if(linha<0)a.appendRow(ld);else a.getRange(linha,1,1,CABECALHO_COMISSOES.length).setValues([ld]);sincronizarTodosFinanceirosComissoes_();return{sucesso:true,mensagem:'Comissão salva com sucesso.',id:ld[0]};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar comissão: '+e.message};}}
-function excluirComissao(id){try{const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){const r=v[i][1];a.deleteRow(i+1);sincronizarFinanceiroPorRodeio_(r);return{sucesso:true,mensagem:'Comissão excluída com sucesso.'};}return{sucesso:false,mensagem:'Comissão não encontrada.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir comissão: '+e.message};}}
+function cadastrarComissao(d){try{const idR=String(d.idRodeio||'').trim(),par=valorTexto_(d.parceiro),val=numeroFinanceiro_(d.valor);if(!idR)return{sucesso:false,mensagem:'Selecione o rodeio.'};if(!par)return{sucesso:false,mensagem:'Informe o parceiro.'};if(val<0)return{sucesso:false,mensagem:'A comissão não pode ser negativa.'};const a=obterAbaComissoes_(),v=a.getDataRange().getValues();let linha=-1,id='';for(let i=1;i<v.length;i++)if(String(v[i][1])===idR){linha=i+1;id=v[i][0];break;}const r=(listarRodeios().dados||[]).find(x=>String(x.id)===idR);if(!r)return{sucesso:false,mensagem:'Rodeio não encontrado.'};const ld=[id||proximoIdGenerico_(a),idR,r.nomeEvento||'',par,val,valorTexto_(d.observacoes),new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];if(linha<0)a.appendRow(ld);else a.getRange(linha,1,1,CABECALHO_COMISSOES.length).setValues([ld]);sincronizarTodosFinanceirosComissoes_();limparCacheDados_('comissoes');limparCacheDados_('financeiro');return{sucesso:true,mensagem:'Comissão salva com sucesso.',id:ld[0]};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar comissão: '+e.message};}}
+function excluirComissao(id){try{const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){const r=v[i][1];a.deleteRow(i+1);sincronizarFinanceiroPorRodeio_(r);limparCacheDados_('comissoes');limparCacheDados_('financeiro');return{sucesso:true,mensagem:'Comissão excluída com sucesso.'};}return{sucesso:false,mensagem:'Comissão não encontrada.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir comissão: '+e.message};}}
 function obterComissaoPorRodeio_(idR){const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][1])===String(idR))return numeroFinanceiro_(v[i][4]);return 0;}
 function sincronizarFinanceiroPorRodeio_(idR){const a=obterAbaFinanceiro_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][2])===String(idR)){recalcularFinanceiro_(v[i][0]);break;}}
 function sincronizarTodosFinanceirosComissoes_(){const a=obterAbaFinanceiro_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(v[i][0])recalcularFinanceiro_(v[i][0]);}
@@ -1354,18 +1381,16 @@ function alterarComissaoDescontada(idFinanceiro, descontada) {
     const novo = !(String(descontada).toLowerCase()==='false' || String(descontada).toUpperCase()==='NÃO' || String(descontada)==='0');
     aba.getRange(linha,8).setValue(novo);
     const resultado = recalcularFinanceiro_(idFinanceiro);
+    limparCacheDados_('financeiro');
     return {sucesso:true,mensagem:novo?'Comissão marcada como descontada.':'Comissão marcada como NÃO descontada. Ela ficará a pagar ao parceiro.',dados:resultado};
   } catch(e) { return {sucesso:false,mensagem:'Erro ao alterar comissão: '+e.message}; }
 }
 
 function listarFinanceiro() {
   try {
+    const cache = obterCacheDados_('financeiro');
+    if (cache) return {sucesso:true,dados:cache};
     const contratos = listarContratos();
-    if (contratos.sucesso) {
-      (contratos.dados || []).forEach(function(c) {
-        sincronizarFaturamentoContrato_(c, c.id);
-      });
-    }
     const aba = obterAbaFinanceiro_();
     const valores = aba.getDataRange().getValues();
     if (valores.length <= 1) return {sucesso:true,dados:[]};
@@ -1375,6 +1400,7 @@ function listarFinanceiro() {
       const f=numeroFinanceiro_(valores[i][5]), comissao=numeroFinanceiro_(valores[i][6]), comissaoDescontada=!(valores[i][7] === false || String(valores[i][7]).toUpperCase() === 'FALSE' || String(valores[i][7]).toUpperCase() === 'NÃO'), liquido=numeroFinanceiro_(valores[i][8]), r=numeroFinanceiro_(valores[i][9]);
       const contrato=(contratos.dados||[]).find(c=>String(c.id)===String(valores[i][1]))||{}; resultado.push({id:valores[i][0],idContrato:valores[i][1],idRodeio:valores[i][2],cliente:valores[i][3]||'',nomeRodeio:valores[i][4]||'',faturamento:f,comissao:comissao,faturamentoLiquido:liquido,recebido:r,saldo:Math.round((liquido-r)*100)/100,statusFinanceiro:statusFinanceiro_(liquido,r),comissaoDescontada:comissaoDescontada,vencimento:formatarData(valores[i][12]),dataRodeio:contrato.dataInicio||'',dataFimRodeio:contrato.dataFim||'',cidade:contrato.cidade||''});
     }
+    salvarCacheDados_('financeiro',resultado,30);
     return {sucesso:true,dados:resultado};
   } catch(e){ return {sucesso:false,mensagem:'Erro ao listar financeiro: '+e.message,dados:[]}; }
 }

@@ -1,24 +1,8 @@
-SECRETARIA GRANEMANN - ORGANIZAÇÃO INTERNA
+GRANEMANN - versão otimizada
 
-1) ARQUIVO EXCEL
-Abra "Secretaria_Granemann_Organizacao.xlsx" no Google Drive e converta para Google Sheets.
-Abas:
-- USUARIOS: logins e permissões
-- EVENTOS: oportunidades encontradas pela Angélica
-- CONTATOS: histórico das conversas e negociações
-- AGENDA: compromissos individuais e compartilhados
-- TAREFAS: tarefas da equipe
-- STATUS: lista de status usados pelo sistema
-
-2) SITE
-O index.html é a primeira base visual do sistema.
-Neste momento o login é apenas demonstrativo.
-O próximo passo é conectar o HTML ao Google Apps Script para:
-- validar André e Angélica na aba USUARIOS;
-- salvar eventos;
-- atualizar contatos;
-- compartilhar agenda;
-- atualizar tarefas em tempo real.
-
-3) SEGURANÇA
-Antes de publicar o sistema, as senhas da aba USUARIOS devem ser trocadas e a validação deve ocorrer no Apps Script.
+Melhorias de desempenho:
+- remove chamada não autorizada de parceiros antes do login;
+- carrega Rodeios e Parceiros em paralelo após o login;
+- cache temporário no servidor para listas de Rodeios (45s) e Parceiros (120s);
+- invalidação automática do cache após alterações;
+- pacote contém somente os arquivos necessários para implantação.
