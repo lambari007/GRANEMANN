@@ -17,13 +17,6 @@ body{font-family:Arial,sans-serif;background:#f3f4f6;color:#222}
 .campo{text-align:left;margin-bottom:16px}
 .campo label{display:block;font-weight:bold;margin-bottom:7px}
 .campo input,.campo select{width:100%;padding:13px;border:1px solid #ccc;border-radius:9px;font-size:15px}
-.tipo-responsavel{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
-.tipo-responsavel-opcao{position:relative;flex:1;min-width:150px}
-.tipo-responsavel-opcao input{position:absolute;opacity:0;pointer-events:none}
-.tipo-responsavel-opcao label{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 14px;border:2px solid #ccc;border-radius:9px;background:#fff;cursor:pointer;font-weight:700;transition:.2s}
-.tipo-responsavel-opcao input:checked+label{border-color:#1f6feb;background:#eef5ff;box-shadow:0 0 0 2px rgba(31,111,235,.12)}
-.tipo-responsavel-ajuda{display:block;margin-top:6px;color:#777;font-size:12px}
-
 button{border:0;border-radius:9px;padding:13px 18px;background:#111;color:white;font-weight:bold;cursor:pointer}
 button:hover{background:#333}
 button:disabled{opacity:.6;cursor:not-allowed}
@@ -62,6 +55,7 @@ button:disabled{opacity:.6;cursor:not-allowed}
 .status-contatado{color:#7a5a00!important;background:#fff3b0!important;border-color:#e0b400!important}
 .status-fechado{color:#176b2c!important;background:#dff3e3!important;border-color:#58a96a!important}
 .status-sem-interesse{color:#b71c1c!important;background:#ffe0e0!important;border-color:#df7777!important}
+.status-cancelado{color:#5b3a8e!important;background:#eadcf8!important;border-color:#8e63b6!important}
 
 /* LISTA */
 .lista-rodeios{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
@@ -75,6 +69,8 @@ button:disabled{opacity:.6;cursor:not-allowed}
 .rodeio-card.status-fechado-card::before{content:"🟢 FECHADO";display:block;background:#2e9b4b;color:white;text-align:center;font-weight:bold;padding:8px;font-size:13px}
 .rodeio-card.status-sem-interesse-card{background:#ffe8e8;border-color:#d32f2f}
 .rodeio-card.status-sem-interesse-card::before{content:"🔴 SEM INTERESSE";display:block;background:#d32f2f;color:white;text-align:center;font-weight:bold;padding:8px;font-size:13px}
+.rodeio-card.status-cancelado-card{background:#f2eafa;border-color:#8e63b6}
+.rodeio-card.status-cancelado-card::before{content:"🟣 CANCELADO";display:block;background:#8e63b6;color:white;text-align:center;font-weight:bold;padding:8px;font-size:13px}
 
 .rodeio-conteudo{padding:18px}.rodeio-conteudo h3{margin-bottom:10px;font-size:18px}
 .rodeio-info{color:#555;font-size:14px;line-height:1.7}
@@ -87,11 +83,12 @@ button:disabled{opacity:.6;cursor:not-allowed}
 .status-card-opcao input:checked+label.status-contatado{background:#e0b400!important;color:#222!important;border-color:#b38f00!important;box-shadow:0 0 0 3px rgba(224,180,0,.25);transform:scale(1.05)}
 .status-card-opcao input:checked+label.status-fechado{background:#2e9b4b!important;color:white!important;border-color:#207638!important;box-shadow:0 0 0 3px rgba(46,155,75,.25);transform:scale(1.05)}
 .status-card-opcao input:checked+label.status-sem-interesse{background:#d32f2f!important;color:white!important;border-color:#a82020!important;box-shadow:0 0 0 3px rgba(211,47,47,.25);transform:scale(1.05)}
+.status-card-opcao input:checked+label.status-cancelado{background:#8e63b6!important;color:white!important;border-color:#6d4791!important;box-shadow:0 0 0 3px rgba(142,99,182,.25);transform:scale(1.05)}
 /* FILTROS E RESUMO */
 .filtros-rodeios{display:grid;grid-template-columns:minmax(260px,1fr) 220px;gap:12px;margin:-5px 0 20px}
 .filtro-busca{position:relative}.filtro-busca input{width:100%;padding:13px 15px 13px 42px;border:1px solid #ccc;border-radius:9px;font-size:15px;background:#fff}.filtro-busca span{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:#777}
 .filtro-status select{width:100%;padding:13px 15px;border:1px solid #ccc;border-radius:9px;font-size:15px;background:#fff}
-.resumo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:18px}.resumo-card{border:1px solid #ddd;border-radius:12px;padding:16px;background:#fafafa;text-align:center}.resumo-card .resumo-numero{display:block;font-size:28px;font-weight:800;line-height:1.1;margin-bottom:5px}.resumo-card .resumo-label{font-size:13px;font-weight:bold;color:#555}.resumo-card.c1{background:#f7f7f7}.resumo-card.c2{background:#fff9d6}.resumo-card.c3{background:#e8f7e8}.resumo-card.c4{background:#ffe8e8}.resumo-card.c5{background:#f1f1f1}.resultado-filtro{margin:-8px 0 15px;color:#666;font-size:13px;font-weight:bold}
+.resumo-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:18px}.resumo-card{border:1px solid #ddd;border-radius:12px;padding:16px;background:#fafafa;text-align:center}.resumo-card .resumo-numero{display:block;font-size:28px;font-weight:800;line-height:1.1;margin-bottom:5px}.resumo-card .resumo-label{font-size:13px;font-weight:bold;color:#555}.resumo-card.c1{background:#f7f7f7}.resumo-card.c2{background:#fff9d6}.resumo-card.c3{background:#e8f7e8}.resumo-card.c4{background:#ffe8e8}.resumo-card.c5{background:#f1f1f1}.resumo-card.c6{background:#f2eafa}.resultado-filtro{margin:-8px 0 15px;color:#666;font-size:13px;font-weight:bold}
 .programacao-preview{width:100%;max-height:220px;object-fit:cover;display:block}
 .rodeio-acoes{display:flex;gap:7px;margin-top:15px}
 .rodeio-acoes button{flex:1;font-size:12px;padding:9px}
@@ -112,6 +109,8 @@ function abrirContratoDoRodeio(id){
   definirCampoContrato('contratoEstado',r.estado||'');
   definirCampoContrato('contratoResponsavel',r.organizador||'');
   definirCampoContrato('contratoTelefone',r.telefone||'');
+definirCampoContrato('contratoCpfCnpj',r.cpfCnpjEvento||'');
+definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -212,6 +211,7 @@ function abrirContratoDoRodeio(id){
 <div class="resumo-card c2"><span id="resumoContatado" class="resumo-numero">0</span><span class="resumo-label">🟡 Contatados</span></div>
 <div class="resumo-card c3"><span id="resumoFechado" class="resumo-numero">0</span><span class="resumo-label">🟢 Fechados</span></div>
 <div class="resumo-card c4"><span id="resumoSemInteresse" class="resumo-numero">0</span><span class="resumo-label">🔴 Sem interesse</span></div>
+<div class="resumo-card c6"><span id="resumoCancelado" class="resumo-numero">0</span><span class="resumo-label">🟣 Cancelados</span></div>
 <div class="resumo-card c5"><span id="resumoSemStatus" class="resumo-numero">0</span><span class="resumo-label">⚪ Sem status</span></div>
 </div>
 <p style="margin-top:16px;color:#777;">Os números são atualizados automaticamente conforme os rodeios são cadastrados ou têm o status alterado.</p>
@@ -234,28 +234,18 @@ function abrirContratoDoRodeio(id){
 </div>
 
 <div class="campo">
-<label>Organizador / Parceiro</label>
+<label>Contato</label>
 <input type="text" id="organizador" required>
-<small class="tipo-responsavel-ajuda">Informe o nome de quem está fazendo o contato.</small>
-</div>
-
-<div class="campo">
-<label>Tipo de contato</label>
-<div class="tipo-responsavel">
-  <div class="tipo-responsavel-opcao">
-    <input type="radio" name="tipoContatoRodeio" id="tipoOrganizador" value="Organizador">
-    <label for="tipoOrganizador">☑️ Organizador</label>
-  </div>
-  <div class="tipo-responsavel-opcao">
-    <input type="radio" name="tipoContatoRodeio" id="tipoParceiro" value="Parceiro">
-    <label for="tipoParceiro">🤝 Parceiro</label>
-  </div>
+<div class="tipo-contato" style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
+<label style="font-weight:normal"><input type="radio" name="tipoContato" value="Organizador" checked> Organizador</label>
+<label style="font-weight:normal"><input type="radio" name="tipoContato" value="Parceiro"> Parceiro</label>
 </div>
 </div>
 
 <div class="campo">
 <label>Telefone para contato</label>
-<input type="tel" id="telefone" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="(49) 99999-9999">
+<input type="tel" id="telefone" placeholder="(49) 99999-9999" inputmode="numeric" maxlength="15" autocomplete="tel">
+<small style="display:block;margin-top:6px;color:#777">Formato: (XX) XXXXX-XXXX</small>
 </div>
 
 <div class="campo">
@@ -315,6 +305,35 @@ function abrirContratoDoRodeio(id){
 <label for="statusSemInteresse" class="status-sem-interesse">🔴 Sem interesse</label>
 </div>
 
+<div class="status-opcao">
+<input type="radio" name="statusRodeio" id="statusCancelado" value="Cancelado">
+<label for="statusCancelado" class="status-cancelado">🟣 Cancelado</label>
+</div>
+
+</div>
+</div>
+</div>
+
+<div id="dadosFechamentoRodeio" class="campo campo-full" style="display:none;margin-top:15px;padding:18px;border:2px solid #58a96a;border-radius:10px;background:#f4fbf5">
+<label style="font-weight:bold;font-size:16px">📄 Dados para contrato e nota fiscal</label>
+<small style="display:block;margin:5px 0 14px;color:#666">Esses dados serão usados automaticamente no próximo passo, no contrato e para emissão fiscal.</small>
+<div class="grid-form" style="margin-top:0">
+<div class="campo">
+<label>Tipo de documento</label>
+<select id="tipoDocumentoEvento">
+<option value="">Selecione</option>
+<option value="CPF">CPF</option>
+<option value="CNPJ">CNPJ</option>
+</select>
+</div>
+<div class="campo">
+<label>CPF / CNPJ do evento</label>
+<input type="text" id="cpfCnpjEvento" inputmode="numeric" maxlength="18" placeholder="Informe o documento">
+</div>
+<div id="campoEnderecoEvento" class="campo campo-full" style="display:none">
+<label>Endereço</label>
+<input type="text" id="enderecoEvento" placeholder="Rua, número, bairro, complemento">
+<small style="display:block;margin-top:6px;color:#777">Obrigatório quando o tipo de documento for CPF.</small>
 </div>
 </div>
 </div>
@@ -335,7 +354,7 @@ function abrirContratoDoRodeio(id){
 <div class="filtros-rodeios">
 <div class="filtro-busca"><span>🔎</span><input type="search" id="buscaRodeios" placeholder="Nome do rodeio, organizador, cidade ou estado..." autocomplete="off"></div>
 <div class="filtro-status"><select id="filtroStatusRodeios">
-<option value="Todos">📋 Todos os status</option><option value="">⚪ Sem status</option><option value="Contatado">🟡 Contatado</option><option value="Fechado">🟢 Fechado</option><option value="Sem interesse">🔴 Sem interesse</option>
+<option value="Todos">📋 Todos os status</option><option value="">⚪ Sem status</option><option value="Contatado">🟡 Contatado</option><option value="Fechado">🟢 Fechado</option><option value="Sem interesse">🔴 Sem interesse</option><option value="Cancelado">🟣 Cancelado</option>
 </select></div>
 </div>
 <div id="resultadoFiltro" class="resultado-filtro"></div>
@@ -638,8 +657,8 @@ let recarregarRodeiosPendente=false;
 
 function normalizarBusca(valor){return String(valor==null?'':valor).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
 function atualizarResumo(){
-  const total=rodeiosCache.length, contatado=rodeiosCache.filter(r=>r.status==='Contatado').length, fechado=rodeiosCache.filter(r=>r.status==='Fechado').length, semInteresse=rodeiosCache.filter(r=>r.status==='Sem interesse').length, semStatus=rodeiosCache.filter(r=>!r.status).length;
-  [['resumoTotal',total],['resumoContatado',contatado],['resumoFechado',fechado],['resumoSemInteresse',semInteresse],['resumoSemStatus',semStatus]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=v;});
+  const total=rodeiosCache.length, contatado=rodeiosCache.filter(r=>r.status==='Contatado').length, fechado=rodeiosCache.filter(r=>r.status==='Fechado').length, semInteresse=rodeiosCache.filter(r=>r.status==='Sem interesse').length, cancelado=rodeiosCache.filter(r=>r.status==='Cancelado').length, semStatus=rodeiosCache.filter(r=>!r.status).length;
+  [['resumoTotal',total],['resumoContatado',contatado],['resumoFechado',fechado],['resumoSemInteresse',semInteresse],['resumoCancelado',cancelado],['resumoSemStatus',semStatus]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=v;});
 }
 function aplicarFiltrosRodeios(){
   const busca=normalizarBusca(document.getElementById('buscaRodeios')?.value||'');
@@ -655,16 +674,16 @@ function renderizarRodeios(dados){
   const fragment=document.createDocumentFragment();
   dados.forEach(function(rodeio){
     const card=document.createElement('div'),status=rodeio.status||'';let classeStatusCard='';
-    if(status==='Contatado')classeStatusCard='status-contatado-card';if(status==='Fechado')classeStatusCard='status-fechado-card';if(status==='Sem interesse')classeStatusCard='status-sem-interesse-card';
+    if(status==='Contatado')classeStatusCard='status-contatado-card';if(status==='Fechado')classeStatusCard='status-fechado-card';if(status==='Sem interesse')classeStatusCard='status-sem-interesse-card';if(status==='Cancelado')classeStatusCard='status-cancelado-card';
     card.className='rodeio-card '+classeStatusCard;card.setAttribute('data-rodeio-id',String(rodeio.id));
     const imagem=rodeio.fotoProgramacao?'<img class="programacao-preview" src="'+escaparHTML(rodeio.fotoProgramacao)+'" alt="Programação" loading="lazy">':'';
     const statusId='status_'+rodeio.id;
     let statusHTML='<div class="status-card"><span class="status-card-titulo">📌 Status do contato</span><div class="status-card-opcoes">';
     statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_contatado" value="Contatado" '+(status==='Contatado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_contatado" class="status-contatado">🟡 Contatado</label></div>';
     statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_fechado" value="Fechado" '+(status==='Fechado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_fechado" class="status-fechado">🟢 Fechado</label></div>';
-    statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_seminteresse" value="Sem interesse" '+(status==='Sem interesse'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_seminteresse" class="status-sem-interesse">🔴 Sem interesse</label></div></div></div>';
-    const rotuloResponsavel=rodeio.tipoContato==='Parceiro'?'Parceiro':'Organizador';
-    card.innerHTML=imagem+'<div class="rodeio-conteudo"><h3>'+escaparHTML(rodeio.nomeEvento)+'</h3><div class="rodeio-info"><strong>'+rotuloResponsavel+':</strong> '+escaparHTML(rodeio.organizador)+'<br><strong>Local:</strong> '+escaparHTML(rodeio.cidade)+' - '+escaparHTML(rodeio.estado)+'<br><strong>Data:</strong> '+escaparHTML(rodeio.dataInicio)+' até '+escaparHTML(rodeio.dataFim)+'<br><strong>Telefone:</strong> '+escaparHTML(rodeio.telefone||'-')+'</div>'+statusHTML+'<div class="rodeio-acoes"><button onclick="editarRodeio('+rodeio.id+')">✏️ Editar</button>'+(status==='Fechado'?'<button onclick="abrirContratoDoRodeio('+rodeio.id+')">📄 CONTRATO</button>':'')+'<button class="btn-perigo" onclick="excluirRodeio('+rodeio.id+')">🗑️ Excluir</button></div></div>';
+    statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_seminteresse" value="Sem interesse" '+(status==='Sem interesse'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_seminteresse" class="status-sem-interesse">🔴 Sem interesse</label></div>';
+    statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_cancelado" value="Cancelado" '+(status==='Cancelado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_cancelado" class="status-cancelado">🟣 Cancelado</label></div></div></div>';
+    card.innerHTML=imagem+'<div class="rodeio-conteudo"><h3>'+escaparHTML(rodeio.nomeEvento)+'</h3><div class="rodeio-info"><strong>Organizador:</strong> '+escaparHTML(rodeio.organizador)+'<br><strong>Local:</strong> '+escaparHTML(rodeio.cidade)+' - '+escaparHTML(rodeio.estado)+'<br><strong>Data:</strong> '+escaparHTML(rodeio.dataInicio)+' até '+escaparHTML(rodeio.dataFim)+'<br><strong>Telefone:</strong> '+escaparHTML(rodeio.telefone||'-')+'</div>'+statusHTML+'<div class="rodeio-acoes"><button onclick="editarRodeio('+rodeio.id+')">✏️ Editar</button>'+(status==='Fechado'?'<button onclick="abrirContratoDoRodeio('+rodeio.id+')">📄 CONTRATO</button>':'')+'<button class="btn-perigo" onclick="excluirRodeio('+rodeio.id+')">🗑️ Excluir</button></div></div>';
     fragment.appendChild(card);
   });lista.innerHTML='';lista.appendChild(fragment);
 }
@@ -689,56 +708,62 @@ async function carregarRodeios(forcar=false){
 function configurarFiltros(){const busca=document.getElementById('buscaRodeios'),status=document.getElementById('filtroStatusRodeios');if(busca&&!busca.dataset.configurado){busca.dataset.configurado='1';busca.addEventListener('input',aplicarFiltrosRodeios);}if(status&&!status.dataset.configurado){status.dataset.configurado='1';status.addEventListener('change',aplicarFiltrosRodeios);}}
 configurarFiltros();
 
-/* CIDADE E TELEFONE */
-async function carregarCidadesRodeio(uf,cidadeSelecionada=''){
-  const cidade=document.getElementById('cidade');
-  if(!cidade)return;
-  cidade.disabled=true;
-  cidade.innerHTML='<option value="">Carregando cidades...</option>';
-  if(!uf){cidade.innerHTML='<option value="">Selecione primeiro o estado</option>';return;}
-  try{
-    const resposta=await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados/'+encodeURIComponent(uf)+'/municipios');
-    if(!resposta.ok)throw new Error('Falha ao carregar cidades');
-    const cidades=await resposta.json();
-    cidade.innerHTML='<option value="">Selecione a cidade</option>';
-    cidades.sort(function(a,b){return a.nome.localeCompare(b.nome,'pt-BR');}).forEach(function(item){
-      const opt=document.createElement('option');
-      opt.value=item.nome;opt.textContent=item.nome;cidade.appendChild(opt);
-    });
-    cidade.disabled=false;
-    if(cidadeSelecionada){
-      const existe=Array.from(cidade.options).some(function(o){return o.value===cidadeSelecionada;});
-      if(!existe){const opt=document.createElement('option');opt.value=cidadeSelecionada;opt.textContent=cidadeSelecionada;cidade.appendChild(opt);}
-      cidade.value=cidadeSelecionada;
-    }
-  }catch(e){
-    console.error(e);
-    cidade.innerHTML='<option value="">Não foi possível carregar as cidades</option>';
-    if(cidadeSelecionada){const opt=document.createElement('option');opt.value=cidadeSelecionada;opt.textContent=cidadeSelecionada;cidade.appendChild(opt);cidade.value=cidadeSelecionada;}
-    cidade.disabled=false;
-  }
+/* CAMPOS DO RODEIO */
+function aplicarMascaraTelefone(valor){
+  let v=String(valor||'').replace(/\D/g,'').slice(0,11);
+  if(v.length<=10)return v.replace(/^(\d{2})(\d{0,4})(\d{0,4}).*/,function(_,a,b,c){return '('+a+(b?') '+b:'')+(c?'-'+c:'');});
+  return v.replace(/^(\d{2})(\d{5})(\d{0,4}).*/,function(_,a,b,c){return '('+a+') '+b+(c?'-'+c:'');});
 }
-
+function aplicarMascaraDocumento(valor,tipo){
+  let v=String(valor||'').replace(/\D/g,'');
+  if(tipo==='CPF'){v=v.slice(0,11);return v.replace(/^(\d{3})(\d{0,3})(\d{0,3})(\d{0,2}).*/,function(_,a,b,c,d){return a+(b?'.'+b:'')+(c?'.'+c:'')+(d?'-'+d:'');});}
+  if(tipo==='CNPJ'){v=v.slice(0,14);return v.replace(/^(\d{2})(\d{0,3})(\d{0,3})(\d{0,4})(\d{0,2}).*/,function(_,a,b,c,d,e){return a+(b?'.'+b:'')+(c?'.'+c:'')+(d?'/'+d:'')+(e?'-'+e:'');});}
+  return v;
+}
+function validarDocumentoEvento(valor,tipo){
+  const v=String(valor||'').replace(/\D/g,'');
+  if(tipo==='CPF')return /^\d{11}$/.test(v) && !/^([0-9])\1{10}$/.test(v);
+  if(tipo==='CNPJ')return /^\d{14}$/.test(v) && !/^([0-9])\1{13}$/.test(v);
+  return false;
+}
+function atualizarCamposFechamento(){
+  const fechado=!!document.querySelector('input[name="statusRodeio"]:checked') && document.querySelector('input[name="statusRodeio"]:checked').value==='Fechado';
+  const bloco=document.getElementById('dadosFechamentoRodeio');
+  if(bloco)bloco.style.display=fechado?'block':'none';
+  atualizarCampoEnderecoDocumento();
+}
+function atualizarCampoEnderecoDocumento(){
+  const tipo=document.getElementById('tipoDocumentoEvento')?.value||'';
+  const campo=document.getElementById('campoEnderecoEvento');
+  const endereco=document.getElementById('enderecoEvento');
+  if(!campo)return;
+  campo.style.display=tipo==='CPF'?'block':'none';
+  if(endereco)endereco.required=tipo==='CPF';
+}
+function carregarCidadesPorEstado(estado, cidadeSelecionada){
+  const select=document.getElementById('cidade');
+  if(!select)return;
+  select.disabled=true;select.innerHTML='<option value="">Carregando cidades...</option>';
+  if(!estado){select.innerHTML='<option value="">Selecione primeiro o estado</option>';return;}
+  fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados/'+encodeURIComponent(estado)+'/municipios')
+    .then(function(r){if(!r.ok)throw new Error('Falha');return r.json();})
+    .then(function(cidades){
+      select.innerHTML='<option value="">Selecione a cidade</option>';
+      cidades.sort(function(a,b){return a.nome.localeCompare(b.nome,'pt-BR');}).forEach(function(c){const o=document.createElement('option');o.value=c.nome;o.textContent=c.nome;select.appendChild(o);});
+      if(cidadeSelecionada)select.value=cidadeSelecionada;
+      select.disabled=false;
+    }).catch(function(){select.disabled=false;select.innerHTML='<option value="">Não foi possível carregar as cidades</option>';if(cidadeSelecionada){const o=document.createElement('option');o.value=cidadeSelecionada;o.textContent=cidadeSelecionada;select.appendChild(o);select.value=cidadeSelecionada;}});
+}
 (function configurarCamposRodeio(){
-  const estado=document.getElementById('estado');
   const telefone=document.getElementById('telefone');
-  if(estado&&!estado.dataset.cidadeConfigurada){
-    estado.dataset.cidadeConfigurada='1';
-    estado.addEventListener('change',function(){carregarCidadesRodeio(this.value);});
-  }
-  if(telefone&&!telefone.dataset.mascaraConfigurada){
-    telefone.dataset.mascaraConfigurada='1';
-    telefone.addEventListener('input',function(){
-      let v=this.value.replace(/\D/g,'').slice(0,11);
-      if(v.length>10)v='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
-      else if(v.length>6)v='('+v.slice(0,2)+') '+v.slice(2,6)+'-'+v.slice(6);
-      else if(v.length>2)v='('+v.slice(0,2)+') '+v.slice(2);
-      else if(v.length>0)v='('+v;
-      this.value=v;
-    });
-  }
-  const tipo=document.querySelector('input[name="tipoContatoRodeio"]');
-  if(tipo&&!document.querySelector('input[name="tipoContatoRodeio"]:checked'))tipo.checked=true;
+  if(telefone)telefone.addEventListener('input',function(){this.value=aplicarMascaraTelefone(this.value);});
+  const estado=document.getElementById('estado');
+  if(estado)estado.addEventListener('change',function(){carregarCidadesPorEstado(this.value,'');});
+  document.querySelectorAll('input[name="statusRodeio"]').forEach(function(input){input.addEventListener('change',atualizarCamposFechamento);});
+  const tipo=document.getElementById('tipoDocumentoEvento');
+  if(tipo)tipo.addEventListener('change',function(){this.value=this.value;atualizarCampoEnderecoDocumento();const d=document.getElementById('cpfCnpjEvento');if(d)d.value=aplicarMascaraDocumento(d.value,this.value);});
+  const doc=document.getElementById('cpfCnpjEvento');
+  if(doc)doc.addEventListener('input',function(){this.value=aplicarMascaraDocumento(this.value,document.getElementById('tipoDocumentoEvento')?.value||'');});
 })();
 
 /* SALVAR RODEIO */
@@ -758,18 +783,30 @@ const dados={
 
 nomeEvento:document.getElementById('nomeEvento').value,
 organizador:document.getElementById('organizador').value,
-tipoContato:(document.querySelector('input[name="tipoContatoRodeio"]:checked')||{}).value||'Organizador',
 cidade:document.getElementById('cidade').value,
 estado:document.getElementById('estado').value,
 dataInicio:document.getElementById('dataInicio').value,
 dataFim:document.getElementById('dataFim').value,
 telefone:document.getElementById('telefone').value,
 fotoProgramacao:'',
-status:statusSelecionado?statusSelecionado.value:''
+status:statusSelecionado?statusSelecionado.value:'',
+tipoContato:(document.querySelector('input[name="tipoContato"]:checked')||{}).value||'Organizador',
+tipoDocumentoEvento:document.getElementById('tipoDocumentoEvento').value,
+cpfCnpjEvento:document.getElementById('cpfCnpjEvento').value,
+enderecoEvento:document.getElementById('enderecoEvento').value
 
 };
 
 const id=document.getElementById('rodeioId').value;
+
+if(statusSelecionado && statusSelecionado.value==='Fechado'){
+  const tipoDoc=document.getElementById('tipoDocumentoEvento').value;
+  const doc=document.getElementById('cpfCnpjEvento').value.trim();
+  const endereco=document.getElementById('enderecoEvento').value.trim();
+  if(!tipoDoc){mensagem.className='erro';mensagem.textContent='Para fechar o rodeio, selecione CPF ou CNPJ.';document.getElementById('tipoDocumentoEvento').focus();return;}
+  if(!validarDocumentoEvento(doc,tipoDoc)){mensagem.className='erro';mensagem.textContent='Informe um '+tipoDoc+' válido.';document.getElementById('cpfCnpjEvento').focus();return;}
+  if(tipoDoc==='CPF' && !endereco){mensagem.className='erro';mensagem.textContent='Quando o documento for CPF, o endereço é obrigatório.';document.getElementById('enderecoEvento').focus();return;}
+}
 
 try{
 
@@ -816,7 +853,7 @@ mensagem.textContent='Erro ao salvar o rodeio.';
 
 
 /* ALTERAR STATUS DIRETO NO CARD */
-async function alterarStatusRodeio(id,status){const card=document.querySelector('.rodeio-card[data-rodeio-id="'+id+'"]'),item=rodeiosCache.find(r=>String(r.id)===String(id));if(!card||!item)return;const anterior=item.status||'',classeAnterior=card.className;item.status=status;let nova='rodeio-card';if(status==='Contatado')nova+=' status-contatado-card';if(status==='Fechado')nova+=' status-fechado-card';if(status==='Sem interesse')nova+=' status-sem-interesse-card';card.className=nova;atualizarResumo();try{const resultado=await chamarAPI('alterarstatusrodeio',{id:id,status:status});if(!resultado.sucesso){item.status=anterior;card.className=classeAnterior;atualizarResumo();aplicarFiltrosRodeios();alert(resultado.mensagem||'Não foi possível alterar o status.');}else aplicarFiltrosRodeios();}catch(erro){console.error(erro);item.status=anterior;card.className=classeAnterior;atualizarResumo();aplicarFiltrosRodeios();alert('Erro ao alterar o status. Verifique a conexão.');}}
+async function alterarStatusRodeio(id,status){const card=document.querySelector('.rodeio-card[data-rodeio-id="'+id+'"]'),item=rodeiosCache.find(r=>String(r.id)===String(id));if(!card||!item)return;const anterior=item.status||'',classeAnterior=card.className;item.status=status;let nova='rodeio-card';if(status==='Contatado')nova+=' status-contatado-card';if(status==='Fechado')nova+=' status-fechado-card';if(status==='Sem interesse')nova+=' status-sem-interesse-card';if(status==='Cancelado')nova+=' status-cancelado-card';card.className=nova;atualizarResumo();try{const resultado=await chamarAPI('alterarstatusrodeio',{id:id,status:status});if(!resultado.sucesso){item.status=anterior;card.className=classeAnterior;atualizarResumo();aplicarFiltrosRodeios();alert(resultado.mensagem||'Não foi possível alterar o status.');}else aplicarFiltrosRodeios();}catch(erro){console.error(erro);item.status=anterior;card.className=classeAnterior;atualizarResumo();aplicarFiltrosRodeios();alert('Erro ao alterar o status. Verifique a conexão.');}}
 
 /* EDITAR */
 
@@ -835,21 +872,25 @@ return;
 document.getElementById('rodeioId').value=rodeio.id;
 document.getElementById('nomeEvento').value=rodeio.nomeEvento||'';
 document.getElementById('organizador').value=rodeio.organizador||'';
-document.getElementById('estado').value=rodeio.estado||'';
-await carregarCidadesRodeio(rodeio.estado||'',rodeio.cidade||'');
 document.getElementById('cidade').value=rodeio.cidade||'';
-document.querySelectorAll('input[name="tipoContatoRodeio"]').forEach(function(input){
-  input.checked=(input.value===(rodeio.tipoContato||rodeio.tipo||'Organizador'));
-});
+document.getElementById('estado').value=rodeio.estado||'';
+carregarCidadesPorEstado(rodeio.estado||'',rodeio.cidade||'');
 document.getElementById('dataInicio').value=converterDataParaInput(rodeio.dataInicio);
 document.getElementById('dataFim').value=converterDataParaInput(rodeio.dataFim);
-document.getElementById('telefone').value=rodeio.telefone||'';
+document.getElementById('telefone').value=aplicarMascaraTelefone(rodeio.telefone||'');
+const tipoContato=rodeio.tipoContato||'Organizador';
+document.querySelectorAll('input[name="tipoContato"]').forEach(function(input){input.checked=input.value===tipoContato;});
+document.getElementById('tipoDocumentoEvento').value=rodeio.tipoDocumentoEvento||'';
+document.getElementById('cpfCnpjEvento').value=aplicarMascaraDocumento(rodeio.cpfCnpjEvento||'',rodeio.tipoDocumentoEvento||'');
+document.getElementById('enderecoEvento').value=rodeio.enderecoEvento||'';
 
 const status=rodeio.status||'';
 
 document.querySelectorAll('input[name="statusRodeio"]').forEach(function(input){
 input.checked=!!status && input.value===status;
 });
+const selectDoc=document.getElementById('tipoDocumentoEvento');if(selectDoc)selectDoc.dispatchEvent(new Event('change'));
+atualizarCamposFechamento();
 
 window.scrollTo({top:0,behavior:'smooth'});
 
@@ -898,15 +939,17 @@ alert('Erro ao excluir o rodeio.');
 function limparFormularioRodeio(){
 
 document.getElementById('formRodeio').reset();
+document.getElementById('cidade').innerHTML='<option value="">Selecione primeiro o estado</option>';document.getElementById('cidade').disabled=true;
 document.getElementById('rodeioId').value='';
+document.getElementById('tipoDocumentoEvento').value='';
+document.getElementById('cpfCnpjEvento').value='';
+document.getElementById('enderecoEvento').value='';
+document.getElementById('dadosFechamentoRodeio').style.display='none';
+document.getElementById('campoEnderecoEvento').style.display='none';
+document.querySelectorAll('input[name="tipoContato"]').forEach(function(input){input.checked=input.value==='Organizador';});
 document.querySelectorAll('input[name="statusRodeio"]').forEach(function(input){
   input.checked=false;
 });
-document.querySelectorAll('input[name="tipoContatoRodeio"]').forEach(function(input){
-  input.checked=(input.value==='Organizador');
-});
-const cidadeEl=document.getElementById('cidade');
-if(cidadeEl){cidadeEl.innerHTML='<option value="">Selecione primeiro o estado</option>';cidadeEl.disabled=true;}
 
 }
 
@@ -927,6 +970,8 @@ function abrirContratoDoRodeio(id){
   definirCampoContrato('contratoEstado',r.estado||'');
   definirCampoContrato('contratoResponsavel',r.organizador||'');
   definirCampoContrato('contratoTelefone',r.telefone||'');
+definirCampoContrato('contratoCpfCnpj',r.cpfCnpjEvento||'');
+definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
