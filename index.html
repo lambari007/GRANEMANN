@@ -145,7 +145,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
 .financeiro-card.parcial .financeiro-status{background:#e0b400;color:#222}
 .financeiro-card.quitado .financeiro-status{background:#2e9b4b;color:#fff}
 .financeiro-card.acima .financeiro-status{background:#7b1fa2;color:#fff}
-.financeiro-valores{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:15px 0}
+.financeiro-valores{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:15px 0}
 .financeiro-valor{background:rgba(255,255,255,.7);border-radius:9px;padding:10px;text-align:center}
 .financeiro-valor small{display:block;color:#666;font-size:11px;margin-bottom:4px}.financeiro-valor strong{font-size:17px}
 .recebimentos-box{margin-top:15px;padding-top:15px;border-top:1px solid rgba(0,0,0,.12)}
@@ -190,6 +190,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
 <button onclick="abrirPagina('lacadores', this)">🤠 Laçadores</button>
 <button onclick="abrirPagina('inscricoes', this)">📋 Inscrições</button>
 <button onclick="abrirPagina('financeiro', this)">💰 Financeiro</button>
+<button onclick="abrirPagina('comissoes', this)">🤝 Comissões</button>
 <button onclick="abrirPagina('premiacoes', this)">🏆 Premiações</button>
 <button onclick="abrirPagina('relatorios', this)">📊 Relatórios</button>
 <button onclick="abrirPagina('agenda', this)">📅 Agenda</button>
@@ -502,6 +503,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
     <div id="listaFinanceiro" class="lista-financeiro"><p class="contratos-vazio">Carregando financeiro...</p></div>
   </div>
 </section>
+<section id="pagina-comissoes" class="pagina"><div class="card"><h2>🤝 Comissões</h2><p style="color:#666;margin:-10px 0 18px">Vincule o rodeio ao parceiro, informe a comissão e explique o motivo. A comissão será abatida automaticamente do valor a receber no Financeiro.</p><form id="formComissao"><input type="hidden" id="comissaoId"><div class="grid-form"><div class="campo campo-full"><label>Rodeio</label><select id="comissaoRodeio" required><option value="">Selecione o rodeio</option></select></div><div class="campo"><label>Parceiro</label><select id="comissaoParceiro" required><option value="">Selecione o parceiro</option></select></div><div class="campo"><label>Valor da comissão (R$)</label><input id="comissaoValor" type="number" min="0" step="0.01" required></div><div class="campo campo-full"><label>Observação / motivo da comissão</label><textarea id="comissaoObservacoes" rows="3" placeholder="Ex.: Comissão de R$ 75,00 referente à indicação e fechamento deste rodeio."></textarea></div></div><div class="acoes"><button type="submit">💾 SALVAR COMISSÃO</button><button type="button" class="btn-secundario" onclick="limparFormularioComissao()">LIMPAR</button></div><div id="mensagemComissao" style="margin-top:15px;font-weight:bold"></div></form></div><div class="card"><h3>📋 Comissões cadastradas</h3><div id="listaComissoes" class="lista-contratos"><p class="contratos-vazio">Carregando comissões...</p></div></div></section>
 <section id="pagina-premiacoes" class="pagina"><div class="card"><h2>🏆 Premiações</h2><p>Esta página será construída na próxima etapa.</p></div></section>
 <section id="pagina-relatorios" class="pagina"><div class="card"><h2>📊 Relatórios</h2><p>Esta página será construída na próxima etapa.</p></div></section>
 <section id="pagina-agenda" class="pagina"><div class="card"><h2>📅 Agenda</h2><p>Esta página será construída na próxima etapa.</p></div></section>
@@ -641,6 +643,7 @@ contratos:'Contratos',
 lacadores:'Laçadores',
 inscricoes:'Inscrições',
 financeiro:'Financeiro',
+comissoes:'Comissões',
 premiacoes:'Premiações',
 relatorios:'Relatórios',
 agenda:'Agenda',
@@ -652,6 +655,7 @@ document.getElementById('tituloPagina').textContent=titulos[nome]||nome;
 if(nome==='rodeios'){configurarFiltros();if(rodeiosCache.length)aplicarFiltrosRodeios();else carregarRodeios();}
 if(nome==='contratos'){carregarContratos();}
 if(nome==='financeiro'){carregarFinanceiro();}
+if(nome==='comissoes'){carregarComissoes();}
 
 }
 
@@ -1254,6 +1258,14 @@ document.getElementById('formContrato').addEventListener('submit',async function
 });
 
 
+let comissoesCache=[];
+async function carregarComissoes(){const l=document.getElementById('listaComissoes');if(!l)return;try{l.innerHTML='<p class="contratos-vazio">Carregando comissões...</p>';if(!rodeiosCache.length)await carregarRodeios();const r=await chamarAPI('listarcomissoes');if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');comissoesCache=r.dados||[];preencherOpcoesComissao();renderizarComissoes();}catch(e){console.error(e);l.innerHTML='<p class="erro">Não foi possível carregar as comissões.</p>';}}
+function preencherOpcoesComissao(){const sr=document.getElementById('comissaoRodeio'),sp=document.getElementById('comissaoParceiro');if(!sr||!sp)return;const ar=sr.value,ap=sp.value;sr.innerHTML='<option value="">Selecione o rodeio</option>'+rodeiosCache.map(r=>'<option value="'+escaparHTML(r.id)+'">'+escaparHTML(r.nomeEvento||('Rodeio #'+r.id))+' — '+escaparHTML(r.cidade||'')+'</option>').join('');const ps=[...new Set(rodeiosCache.filter(r=>String(r.tipoContato||'').toLowerCase()==='parceiro').map(r=>String(r.organizador||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));sp.innerHTML='<option value="">Selecione o parceiro</option>'+ps.map(p=>'<option value="'+escaparHTML(p)+'">'+escaparHTML(p)+'</option>').join('');if(ar)sr.value=ar;if(ap)sp.value=ap;}
+function limparFormularioComissao(){document.getElementById('formComissao')?.reset();document.getElementById('comissaoId').value='';document.getElementById('mensagemComissao').textContent='';}
+function renderizarComissoes(){const l=document.getElementById('listaComissoes');if(!l)return;if(!comissoesCache.length){l.innerHTML='<p class="contratos-vazio">Nenhuma comissão cadastrada.</p>';return;}l.innerHTML=comissoesCache.map(c=>'<div class="contrato-card"><h3>'+escaparHTML(c.nomeRodeio||'Rodeio')+'</h3><div class="info"><strong>Parceiro:</strong> '+escaparHTML(c.parceiro||'-')+'<br><strong>Comissão:</strong> '+formatarMoedaFinanceiro(c.valor)+'<br><strong>Motivo:</strong> '+escaparHTML(c.observacoes||'-')+'</div><div class="rodeio-acoes"><button onclick="editarComissao('+c.id+')">✏️ Editar</button><button class="btn-perigo" onclick="excluirComissaoUI('+c.id+')">🗑️ Excluir</button></div></div>').join('');}
+function editarComissao(id){const c=comissoesCache.find(x=>String(x.id)===String(id));if(!c)return;document.getElementById('comissaoId').value=c.id;document.getElementById('comissaoRodeio').value=c.idRodeio;document.getElementById('comissaoParceiro').value=c.parceiro;document.getElementById('comissaoValor').value=c.valor;document.getElementById('comissaoObservacoes').value=c.observacoes||'';window.scrollTo({top:0,behavior:'smooth'});}
+async function excluirComissaoUI(id){if(!confirm('Excluir esta comissão?'))return;const r=await chamarAPI('excluircomissao',{id});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível excluir.');return;}await carregarComissoes();await carregarFinanceiro();}
+document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemComissao');m.textContent='Salvando comissão...';const r=await chamarAPI('cadastrarcomissao',{id:document.getElementById('comissaoId').value,idRodeio:document.getElementById('comissaoRodeio').value,parceiro:document.getElementById('comissaoParceiro').value,valor:document.getElementById('comissaoValor').value,observacoes:document.getElementById('comissaoObservacoes').value});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioComissao();await carregarComissoes();await carregarFinanceiro();});
 let financeiroCache=[];
 let recebimentosCache={};
 
@@ -1399,7 +1411,7 @@ function renderizarFinanceiro(dados){
     card.innerHTML='<span class="financeiro-status">'+(f.statusFinanceiro==='Não recebido'?'🔴 NÃO RECEBIDO':f.statusFinanceiro==='Recebimento parcial'?'🟡 PARCIAL':f.statusFinanceiro==='Recebido integralmente'?'🟢 RECEBIDO INTEGRALMENTE':'🟣 ACIMA DO FATURAMENTO')+'</span>'+
       '<h3>'+escaparHTML(f.nomeRodeio||'Rodeio')+'</h3>'+
       '<div class="info"><strong>Cliente:</strong> '+escaparHTML(f.cliente||'-')+(f.dataRodeio?'<br><strong>Data do rodeio:</strong> '+escaparHTML(f.dataRodeio):'')+(f.cidade?'<br><strong>Cidade:</strong> '+escaparHTML(f.cidade):'')+(f.vencimento?'<br><strong>Vencimento:</strong> '+escaparHTML(f.vencimento):'')+'</div>'+
-      '<div class="financeiro-valores"><div class="financeiro-valor"><small>FATURAMENTO</small><strong>'+formatarMoedaFinanceiro(f.faturamento)+'</strong></div><div class="financeiro-valor"><small>RECEBIDO</small><strong>'+formatarMoedaFinanceiro(f.recebido)+'</strong></div><div class="financeiro-valor"><small>SALDO</small><strong>'+formatarMoedaFinanceiro(saldo)+'</strong></div></div>'+
+      '<div class="financeiro-valores"><div class="financeiro-valor"><small>FATURAMENTO</small><strong>'+formatarMoedaFinanceiro(f.faturamento)+'</strong></div><div class="financeiro-valor"><small>COMISSÃO</small><strong>'+formatarMoedaFinanceiro(f.comissao||0)+'</strong></div><div class="financeiro-valor"><small>A RECEBER LÍQUIDO</small><strong>'+formatarMoedaFinanceiro(f.faturamentoLiquido||0)+'</strong></div><div class="financeiro-valor"><small>RECEBIDO</small><strong>'+formatarMoedaFinanceiro(f.recebido)+'</strong></div><div class="financeiro-valor"><small>SALDO</small><strong>'+formatarMoedaFinanceiro(saldo)+'</strong></div></div>'+
       '<div class="recebimentos-box"><strong>Histórico de recebimentos</strong><div id="historico-'+f.idFinanceiro+'">Carregando...</div>'+
       '<form class="recebimento-form" onsubmit="registrarRecebimentoFinanceiro(event,'+f.id+')">'+
       '<div class="campo"><label>Valor recebido (R$)</label><input name="valor" type="number" min="0.01" step="0.01" required></div>'+
