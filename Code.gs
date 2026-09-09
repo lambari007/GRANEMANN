@@ -156,6 +156,8 @@ function doGet(e) {
 
   if (acao === 'excluirparceiro') return respostaJSONP(excluirParceiro(params.id), params.callback);
 
+  if (acao === 'alterarcomissaodescontada') return respostaJSONP(alterarComissaoDescontada(params.idFinanceiro, params.descontada), params.callback);
+
   if (acao === 'listarfinanceiro') {
     return respostaJSONP(listarFinanceiro(), params.callback);
   }
@@ -1086,7 +1088,33 @@ function obterAbaComissoes_(){
   const c=a.getRange(1,1,1,CABECALHO_COMISSOES.length).getValues()[0]; let ok=true; for(let i=0;i<c.length;i++)if(String(c[i]||'').trim()!==CABECALHO_COMISSOES[i]){ok=false;break;}
   if(!ok)a.getRange(1,1,1,CABECALHO_COMISSOES.length).setValues([CABECALHO_COMISSOES]); a.setFrozenRows(1); return a;
 }
-function listarComissoes(){try{const a=obterAbaComissoes_(),v=a.getDataRange().getValues(),rs=listarRodeios().dados||[],map={};rs.forEach(r=>map[String(r.id)]=r);const d=[];for(let i=1;i<v.length;i++){if(!v[i][0])continue;const r=map[String(v[i][1])]||{};d.push({id:v[i][0],idRodeio:v[i][1]||'',nomeRodeio:v[i][2]||r.nomeEvento||'',parceiro:v[i][3]||'',valor:numeroFinanceiro_(v[i][4]),observacoes:v[i][5]||'',dataCadastro:formatarDataHora(v[i][6]),dataInicio:r.dataInicio||'',dataFim:r.dataFim||'',cidade:r.cidade||'',estado:r.estado||''});}return{sucesso:true,dados:d};}catch(e){return{sucesso:false,mensagem:'Erro ao listar comissões: '+e.message,dados:[]};}}
+function listarComissoes(){
+  try{
+    const a=obterAbaComissoes_(),v=a.getDataRange().getValues(),rs=listarRodeios().dados||[],map={};
+    rs.forEach(r=>map[String(r.id)]=r);
+    // Mapeia o financeiro pelo rodeio para saber se a comissão foi efetivamente descontada.
+    const af=obterAbaFinanceiro_(),vf=af.getDataRange().getValues(),fm={};
+    for(let i=1;i<vf.length;i++) if(vf[i][0]) fm[String(vf[i][2])] = {
+      idFinanceiro:vf[i][0],
+      descontada:!(vf[i][7]===false || String(vf[i][7]).toUpperCase()==='FALSE' || String(vf[i][7]).toUpperCase()==='NÃO'),
+      faturamentoLiquido:numeroFinanceiro_(vf[i][8]),
+      faturamento:numeroFinanceiro_(vf[i][5])
+    };
+    const d=[];
+    for(let i=1;i<v.length;i++){
+      if(!v[i][0])continue;
+      const idR=String(v[i][1]||''),r=map[idR]||{},f=fm[idR]||null;
+      d.push({
+        id:v[i][0],idRodeio:v[i][1]||'',nomeRodeio:v[i][2]||r.nomeEvento||'',parceiro:v[i][3]||'',
+        valor:numeroFinanceiro_(v[i][4]),observacoes:v[i][5]||'',dataCadastro:formatarDataHora(v[i][6]),
+        dataInicio:r.dataInicio||'',dataFim:r.dataFim||'',cidade:r.cidade||'',estado:r.estado||'',
+        comissaoDescontada:f?f.descontada:null, statusComissao:f?(f.descontada?'DESCONTADA':'A PAGAR'):'SEM FINANCEIRO',
+        faturamento:f?f.faturamento:0, faturamentoLiquido:f?f.faturamentoLiquido:0
+      });
+    }
+    return{sucesso:true,dados:d};
+  }catch(e){return{sucesso:false,mensagem:'Erro ao listar comissões: '+e.message,dados:[]};}
+}
 function cadastrarComissao(d){try{const idR=String(d.idRodeio||'').trim(),par=valorTexto_(d.parceiro),val=numeroFinanceiro_(d.valor);if(!idR)return{sucesso:false,mensagem:'Selecione o rodeio.'};if(!par)return{sucesso:false,mensagem:'Informe o parceiro.'};if(val<0)return{sucesso:false,mensagem:'A comissão não pode ser negativa.'};const a=obterAbaComissoes_(),v=a.getDataRange().getValues();let linha=-1,id='';for(let i=1;i<v.length;i++)if(String(v[i][1])===idR){linha=i+1;id=v[i][0];break;}const r=(listarRodeios().dados||[]).find(x=>String(x.id)===idR);if(!r)return{sucesso:false,mensagem:'Rodeio não encontrado.'};const ld=[id||proximoIdGenerico_(a),idR,r.nomeEvento||'',par,val,valorTexto_(d.observacoes),new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];if(linha<0)a.appendRow(ld);else a.getRange(linha,1,1,CABECALHO_COMISSOES.length).setValues([ld]);sincronizarTodosFinanceirosComissoes_();return{sucesso:true,mensagem:'Comissão salva com sucesso.',id:ld[0]};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar comissão: '+e.message};}}
 function excluirComissao(id){try{const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){const r=v[i][1];a.deleteRow(i+1);sincronizarFinanceiroPorRodeio_(r);return{sucesso:true,mensagem:'Comissão excluída com sucesso.'};}return{sucesso:false,mensagem:'Comissão não encontrada.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir comissão: '+e.message};}}
 function obterComissaoPorRodeio_(idR){const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][1])===String(idR))return numeroFinanceiro_(v[i][4]);return 0;}
@@ -1098,7 +1126,7 @@ function sincronizarTodosFinanceirosComissoes_(){const a=obterAbaFinanceiro_(),v
 
 const CABECALHO_FINANCEIRO = [
   'ID','ID_CONTRATO','ID_RODEIO','CLIENTE','NOME_RODEIO','FATURAMENTO',
-  'COMISSAO','FATURAMENTO_LIQUIDO','RECEBIDO','SALDO','STATUS_FINANCEIRO','VENCIMENTO','DATA_CADASTRO','USUARIO_CADASTRO'
+  'COMISSAO','COMISSAO_DESCONTADA','FATURAMENTO_LIQUIDO','RECEBIDO','SALDO','STATUS_FINANCEIRO','VENCIMENTO','DATA_CADASTRO','USUARIO_CADASTRO'
 ];
 
 const CABECALHO_RECEBIMENTOS = [
@@ -1111,20 +1139,40 @@ function obterAbaFinanceiro_() {
   let aba = planilha.getSheetByName(ABA_FINANCEIRO);
   if (!aba) aba = planilha.insertSheet(ABA_FINANCEIRO);
 
-  // Migração da estrutura antiga (12 colunas) para a nova (14 colunas).
-  // As duas colunas novas entram depois de FATURAMENTO, preservando
-  // RECEBIDO, SALDO, STATUS e VENCIMENTO dos lançamentos existentes.
+  // Migração da estrutura antiga (12 colunas) para a nova estrutura com controle de comissão.
+  // As colunas de comissão entram depois de FATURAMENTO.
+  // Para lançamentos já existentes, o comportamento anterior era descontar a comissão,
+  // então a nova chave é inicializada como SIM quando já houver comissão.
   const cabAntigo = ['ID','ID_CONTRATO','ID_RODEIO','CLIENTE','NOME_RODEIO','FATURAMENTO','RECEBIDO','SALDO','STATUS_FINANCEIRO','VENCIMENTO','DATA_CADASTRO','USUARIO_CADASTRO'];
   if (aba.getMaxColumns() >= cabAntigo.length) {
     const atual = aba.getRange(1,1,1,cabAntigo.length).getValues()[0].map(v=>String(v||'').trim());
     if (atual.join('|') === cabAntigo.join('|')) {
-      aba.insertColumnsAfter(6,2);
+      aba.insertColumnsAfter(6,3);
+    }
+  }
+  // Migração de uma versão anterior que já tinha COMISSAO e FATURAMENTO_LIQUIDO,
+  // mas ainda não tinha a chave COMISSAO_DESCONTADA.
+  if (aba.getMaxColumns() >= 14) {
+    const h14 = aba.getRange(1,1,1,14).getValues()[0].map(v=>String(v||'').trim());
+    const esperado14 = ['ID','ID_CONTRATO','ID_RODEIO','CLIENTE','NOME_RODEIO','FATURAMENTO','COMISSAO','FATURAMENTO_LIQUIDO','RECEBIDO','SALDO','STATUS_FINANCEIRO','VENCIMENTO','DATA_CADASTRO','USUARIO_CADASTRO'];
+    if (h14.join('|') === esperado14.join('|')) {
+      aba.insertColumnAfter(7);
+      const ultima = aba.getLastRow();
+      if (ultima >= 2) aba.getRange(2,8,ultima-1,1).setValue(true);
     }
   }
   if (aba.getMaxColumns() < CABECALHO_FINANCEIRO.length) {
     aba.insertColumnsAfter(aba.getMaxColumns(), CABECALHO_FINANCEIRO.length - aba.getMaxColumns());
   }
   aba.getRange(1,1,1,CABECALHO_FINANCEIRO.length).setValues([CABECALHO_FINANCEIRO]);
+  // Se a chave estiver vazia em algum lançamento antigo, mantém o comportamento anterior: SIM.
+  const ultimaLinha = aba.getLastRow();
+  if (ultimaLinha >= 2) {
+    const chaves = aba.getRange(2,8,ultimaLinha-1,1).getValues();
+    const coms = aba.getRange(2,7,ultimaLinha-1,1).getValues();
+    for (let i=0;i<chaves.length;i++) if (chaves[i][0] === '' || chaves[i][0] == null) chaves[i][0] = numeroFinanceiro_(coms[i][0]) > 0;
+    aba.getRange(2,8,ultimaLinha-1,1).setValues(chaves);
+  }
   aba.setFrozenRows(1);
   return aba;
 }
@@ -1178,16 +1226,18 @@ function recalcularFinanceiro_(idFinanceiro) {
   const faturamento = numeroFinanceiro_(valores[linha-1][5]);
   const idRodeio = valores[linha-1][2];
   const comissao = obterComissaoPorRodeio_(idRodeio);
-  const faturamentoLiquido = Math.max(0, Math.round((faturamento-comissao)*100)/100);
+  const comissaoDescontada = valores[linha-1][7] === true || String(valores[linha-1][7]).toUpperCase() === 'TRUE' || String(valores[linha-1][7]).toUpperCase() === 'SIM';
+  const faturamentoLiquido = Math.max(0, Math.round((faturamento-(comissaoDescontada?comissao:0))*100)/100);
   const recs = abaR.getDataRange().getValues();
   let recebido = 0;
   for (let i=1;i<recs.length;i++) if (String(recs[i][1]) === String(idFinanceiro)) recebido += numeroFinanceiro_(recs[i][3]);
   const saldo = Math.round((faturamentoLiquido-recebido)*100)/100;
   const status = statusFinanceiro_(faturamentoLiquido, recebido);
-  abaF.getRange(linha,7,1,5).setValues([[comissao,faturamentoLiquido,recebido,saldo,status]]);
+  abaF.getRange(linha,7,1,5).setValues([[comissao,comissaoDescontada,faturamentoLiquido,recebido,saldo]]);
+  abaF.getRange(linha,12).setValue(status);
   const idContrato = valores[linha-1][1];
   if (idContrato) atualizarValorRecebidoContrato_(idContrato, recebido);
-  return { faturamento, comissao, faturamentoLiquido, recebido, saldo, status };
+  return { faturamento, comissao, comissaoDescontada, faturamentoLiquido, recebido, saldo, status };
 }
 
 function atualizarValorRecebidoContrato_(idContrato, recebido) {
@@ -1212,18 +1262,32 @@ function sincronizarFaturamentoContrato_(dados, idContrato) {
   const faturamento = numeroFinanceiro_(dados.valorTotal);
   if (linha < 0) {
     idFinanceiro = proximoIdGenerico_(aba);
-    const comissao = obterComissaoPorRodeio_(dados.idRodeio); const liquido = Math.max(0,faturamento-comissao); aba.appendRow([idFinanceiro,idContrato,valorTexto_(dados.idRodeio),valorTexto_(dados.cliente),valorTexto_(dados.nomeRodeio),faturamento,comissao,liquido,0,liquido,'Não recebido',converterData(valorTexto_(dados.vencimento)),new Date(),usuario]);
+    const comissao = obterComissaoPorRodeio_(dados.idRodeio); const comissaoDescontada = true; const liquido = Math.max(0,faturamento-comissao); aba.appendRow([idFinanceiro,idContrato,valorTexto_(dados.idRodeio),valorTexto_(dados.cliente),valorTexto_(dados.nomeRodeio),faturamento,comissao,comissaoDescontada,liquido,0,liquido,'Não recebido',converterData(valorTexto_(dados.vencimento)),new Date(),usuario]);
     const legado = numeroFinanceiro_(dados.valorRecebido);
     if (legado > 0) {
       const abaR = obterAbaRecebimentos_();
       abaR.appendRow([proximoIdGenerico_(abaR),idFinanceiro,idContrato,legado,new Date(),valorTexto_(dados.cliente),valorTexto_(dados.formaPagamento),'Valor recebido informado no contrato',new Date(),usuario]);
     }
   } else {
-    const comissao = obterComissaoPorRodeio_(dados.idRodeio); const liquido = Math.max(0,faturamento-comissao); aba.getRange(linha,2,1,7).setValues([[idContrato,valorTexto_(dados.idRodeio),valorTexto_(dados.cliente),valorTexto_(dados.nomeRodeio),faturamento,comissao,liquido]]);
+    const comissao = obterComissaoPorRodeio_(dados.idRodeio); const chaveAtual = valores[linha-1][7] === false || String(valores[linha-1][7]).toUpperCase() === 'FALSE' || String(valores[linha-1][7]).toUpperCase() === 'NÃO' ? false : true; const liquido = Math.max(0,faturamento-(chaveAtual?comissao:0)); aba.getRange(linha,2,1,8).setValues([[idContrato,valorTexto_(dados.idRodeio),valorTexto_(dados.cliente),valorTexto_(dados.nomeRodeio),faturamento,comissao,chaveAtual,liquido]]);
     aba.getRange(linha,12).setValue(converterData(valorTexto_(dados.vencimento)));
   }
   recalcularFinanceiro_(idFinanceiro);
   return idFinanceiro;
+}
+
+function alterarComissaoDescontada(idFinanceiro, descontada) {
+  try {
+    const aba = obterAbaFinanceiro_();
+    const valores = aba.getDataRange().getValues();
+    let linha = -1;
+    for (let i=1;i<valores.length;i++) if (String(valores[i][0]) === String(idFinanceiro)) { linha=i+1; break; }
+    if (linha < 0) return {sucesso:false,mensagem:'Lançamento financeiro não encontrado.'};
+    const novo = !(String(descontada).toLowerCase()==='false' || String(descontada).toUpperCase()==='NÃO' || String(descontada)==='0');
+    aba.getRange(linha,8).setValue(novo);
+    const resultado = recalcularFinanceiro_(idFinanceiro);
+    return {sucesso:true,mensagem:novo?'Comissão marcada como descontada.':'Comissão marcada como NÃO descontada. Ela ficará a pagar ao parceiro.',dados:resultado};
+  } catch(e) { return {sucesso:false,mensagem:'Erro ao alterar comissão: '+e.message}; }
 }
 
 function listarFinanceiro() {
@@ -1240,8 +1304,8 @@ function listarFinanceiro() {
     const resultado=[];
     for(let i=1;i<valores.length;i++){
       if(!valores[i][0]) continue;
-      const f=numeroFinanceiro_(valores[i][5]), comissao=numeroFinanceiro_(valores[i][6]), liquido=numeroFinanceiro_(valores[i][7]), r=numeroFinanceiro_(valores[i][8]);
-      const contrato=(contratos.dados||[]).find(c=>String(c.id)===String(valores[i][1]))||{}; resultado.push({id:valores[i][0],idContrato:valores[i][1],idRodeio:valores[i][2],cliente:valores[i][3]||'',nomeRodeio:valores[i][4]||'',faturamento:f,comissao:comissao,faturamentoLiquido:liquido,recebido:r,saldo:Math.round((liquido-r)*100)/100,statusFinanceiro:statusFinanceiro_(liquido,r),vencimento:formatarData(valores[i][11]),dataRodeio:contrato.dataInicio||'',dataFimRodeio:contrato.dataFim||'',cidade:contrato.cidade||''});
+      const f=numeroFinanceiro_(valores[i][5]), comissao=numeroFinanceiro_(valores[i][6]), comissaoDescontada=!(valores[i][7] === false || String(valores[i][7]).toUpperCase() === 'FALSE' || String(valores[i][7]).toUpperCase() === 'NÃO'), liquido=numeroFinanceiro_(valores[i][8]), r=numeroFinanceiro_(valores[i][9]);
+      const contrato=(contratos.dados||[]).find(c=>String(c.id)===String(valores[i][1]))||{}; resultado.push({id:valores[i][0],idContrato:valores[i][1],idRodeio:valores[i][2],cliente:valores[i][3]||'',nomeRodeio:valores[i][4]||'',faturamento:f,comissao:comissao,faturamentoLiquido:liquido,recebido:r,saldo:Math.round((liquido-r)*100)/100,statusFinanceiro:statusFinanceiro_(liquido,r),comissaoDescontada:comissaoDescontada,vencimento:formatarData(valores[i][12]),dataRodeio:contrato.dataInicio||'',dataFimRodeio:contrato.dataFim||'',cidade:contrato.cidade||''});
     }
     return {sucesso:true,dados:resultado};
   } catch(e){ return {sucesso:false,mensagem:'Erro ao listar financeiro: '+e.message,dados:[]}; }

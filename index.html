@@ -490,7 +490,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
 <section id="pagina-financeiro" class="pagina">
   <div class="card">
     <h2>💰 Financeiro</h2>
-    <p style="color:#666;margin:-10px 0 18px">Controle de faturamento e recebimentos dos contratos. O saldo é calculado automaticamente: faturamento menos tudo o que já foi recebido.</p>
+    <p style="color:#666;margin:-10px 0 18px">Controle de faturamento e recebimentos dos contratos. O saldo considera o desconto da comissão somente quando a chave de comissão descontada estiver ativada. Se não foi descontada do cliente, o valor integral continua a receber e a comissão fica registrada como valor a pagar ao parceiro.</p>
     <div class="financeiro-resumo">
       <div class="resumo-card c1"><span id="finFaturamento" class="resumo-numero">R$ 0,00</span><span class="resumo-label">💰 Faturamento</span></div>
       <div class="resumo-card c3"><span id="finRecebido" class="resumo-numero">R$ 0,00</span><span class="resumo-label">🟢 Recebido</span></div>
@@ -511,7 +511,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
 <section id="pagina-comissoes" class="pagina">
   <div class="card">
     <h2>🤝 Comissões</h2>
-    <p style="color:#666;margin:-10px 0 18px">Vincule o rodeio ao parceiro, informe a comissão e explique o motivo. A comissão será abatida automaticamente do valor a receber no Financeiro.</p>
+    <p style="color:#666;margin:-10px 0 18px">Vincule o rodeio ao parceiro, informe a comissão e explique o motivo. A comissão pode ser descontada do valor a receber no Financeiro. A chave no Financeiro informa se ela foi descontada ou se ficou a pagar ao parceiro.</p>
     <form id="formComissao"><input type="hidden" id="comissaoId"><div class="grid-form">
       <div class="campo campo-full"><label>Rodeio</label><select id="comissaoRodeio" required><option value="">Selecione o rodeio</option></select></div>
       <div class="campo"><label>Parceiro</label><select id="comissaoParceiro" required><option value="">Selecione o parceiro</option></select></div>
@@ -530,6 +530,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
       <div class="campo"><label>Parceiro</label><select id="relComissaoParceiro"><option value="">Todos os parceiros</option></select></div>
       <div class="campo"><label>Data inicial</label><input type="date" id="relComissaoInicio"></div>
       <div class="campo"><label>Data final</label><input type="date" id="relComissaoFim"></div>
+      <div class="campo"><label>Situação da comissão</label><select id="relComissaoStatus"><option value="TODAS">Todas</option><option value="DESCONTADAS">Já descontadas</option><option value="APAGAR">Faltam pagar ao parceiro</option></select></div>
     </div>
     <div class="acoes"><button type="button" onclick="gerarRelatorioComissoes()">📊 GERAR RELATÓRIO DE COMISSÕES</button><button type="button" class="btn-secundario" onclick="limparFiltrosRelatorioComissoes()">LIMPAR FILTROS</button></div>
   </div>
@@ -1315,26 +1316,58 @@ async function excluirParceiroUI(id){if(!confirm('Excluir este parceiro?'))retur
 document.getElementById('formParceiro')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemParceiro');m.textContent='Salvando parceiro...';const r=await chamarAPI('cadastrarparceiro',{id:document.getElementById('parceiroCadastroId').value,nome:document.getElementById('parceiroNome').value,telefone:document.getElementById('parceiroTelefone').value,documento:document.getElementById('parceiroDocumento').value,observacoes:document.getElementById('parceiroObservacoes').value});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioParceiro();await carregarParceiros();});
 
 function limparFormularioComissao(){document.getElementById('formComissao')?.reset();document.getElementById('comissaoId').value='';document.getElementById('mensagemComissao').textContent='';}
-function renderizarComissoes(){const l=document.getElementById('listaComissoes');if(!l)return;if(!comissoesCache.length){l.innerHTML='<p class="contratos-vazio">Nenhuma comissão cadastrada.</p>';return;}l.innerHTML=comissoesCache.map(c=>'<div class="contrato-card"><h3>'+escaparHTML(c.nomeRodeio||'Rodeio')+'</h3><div class="info"><strong>Parceiro:</strong> '+escaparHTML(c.parceiro||'-')+'<br><strong>Comissão:</strong> '+formatarMoedaFinanceiro(c.valor)+'<br><strong>Motivo:</strong> '+escaparHTML(c.observacoes||'-')+'</div><div class="rodeio-acoes"><button onclick="editarComissao('+c.id+')">✏️ Editar</button><button class="btn-perigo" onclick="excluirComissaoUI('+c.id+')">🗑️ Excluir</button></div></div>').join('');}
+function renderizarComissoes(){const l=document.getElementById('listaComissoes');if(!l)return;if(!comissoesCache.length){l.innerHTML='<p class="contratos-vazio">Nenhuma comissão cadastrada.</p>';return;}l.innerHTML=comissoesCache.map(c=>{const sit=c.comissaoDescontada===true?'DESCONTADA DO FATURAMENTO':c.comissaoDescontada===false?'A PAGAR AO PARCEIRO':'SEM FINANCEIRO — CONFERIR';const cls=c.comissaoDescontada===true?'color:#176b2c':c.comissaoDescontada===false?'color:#a33b00':'color:#666';return '<div class="contrato-card"><h3>'+escaparHTML(c.nomeRodeio||'Rodeio')+'</h3><div class="info"><strong>Parceiro:</strong> '+escaparHTML(c.parceiro||'-')+'<br><strong>Comissão:</strong> '+formatarMoedaFinanceiro(c.valor)+'<br><strong>Situação:</strong> <span style="font-weight:bold;'+cls+'">'+sit+'</span><br><strong>Motivo:</strong> '+escaparHTML(c.observacoes||'-')+'</div><div class="rodeio-acoes"><button onclick="editarComissao('+c.id+')">✏️ Editar</button><button class="btn-perigo" onclick="excluirComissaoUI('+c.id+')">🗑️ Excluir</button></div></div>';}).join('');}
 function editarComissao(id){const c=comissoesCache.find(x=>String(x.id)===String(id));if(!c)return;document.getElementById('comissaoId').value=c.id;document.getElementById('comissaoRodeio').value=c.idRodeio;document.getElementById('comissaoParceiro').value=c.parceiro;document.getElementById('comissaoValor').value=c.valor;document.getElementById('comissaoObservacoes').value=c.observacoes||'';window.scrollTo({top:0,behavior:'smooth'});}
 async function excluirComissaoUI(id){if(!confirm('Excluir esta comissão?'))return;const r=await chamarAPI('excluircomissao',{id});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível excluir.');return;}await carregarComissoes();await carregarFinanceiro();}
 document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemComissao');m.textContent='Salvando comissão...';const r=await chamarAPI('cadastrarcomissao',{id:document.getElementById('comissaoId').value,idRodeio:document.getElementById('comissaoRodeio').value,parceiro:document.getElementById('comissaoParceiro').value,valor:document.getElementById('comissaoValor').value,observacoes:document.getElementById('comissaoObservacoes').value});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioComissao();await carregarComissoes();await carregarFinanceiro();});
 function preencherFiltroRelatorioComissoes(){const s=document.getElementById('relComissaoParceiro');if(!s)return;const atual=s.value;const ps=(parceirosCache||[]).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));s.innerHTML='<option value="">Todos os parceiros</option>'+ps.map(p=>'<option value="'+escaparHTML(p.nome)+'">'+escaparHTML(p.nome)+'</option>').join('');if(atual)s.value=atual;}
-function limparFiltrosRelatorioComissoes(){const s=document.getElementById('relComissaoParceiro');if(s)s.value='';const i=document.getElementById('relComissaoInicio');if(i)i.value='';const f=document.getElementById('relComissaoFim');if(f)f.value='';}
+function limparFiltrosRelatorioComissoes(){const s=document.getElementById('relComissaoParceiro');if(s)s.value='';const i=document.getElementById('relComissaoInicio');if(i)i.value='';const f=document.getElementById('relComissaoFim');if(f)f.value='';const st=document.getElementById('relComissaoStatus');if(st)st.value='TODAS';}
 function gerarRelatorioComissoes(){
   if(!comissoesCache.length){alert('Não há comissões cadastradas para gerar o relatório.');return;}
   const parceiro=(document.getElementById('relComissaoParceiro')?.value||'').trim();
-  const inicio=document.getElementById('relComissaoInicio')?.value||''; const fim=document.getElementById('relComissaoFim')?.value||'';
-  const dados=comissoesCache.filter(c=>{const p=!parceiro||String(c.parceiro)===parceiro;const d=formatarDataISOFinanceiro(c.dataInicio||'');return p&&(!inicio||!d||d>=inicio)&&(!fim||!d||d<=fim);}).sort((a,b)=>String(a.dataInicio||'').localeCompare(String(b.dataInicio||'')));
+  const inicio=document.getElementById('relComissaoInicio')?.value||'';
+  const fim=document.getElementById('relComissaoFim')?.value||'';
+  const status=(document.getElementById('relComissaoStatus')?.value||'TODAS').trim();
+  const dados=comissoesCache.filter(c=>{
+    const p=!parceiro||String(c.parceiro)===parceiro;
+    const d=formatarDataISOFinanceiro(c.dataInicio||'');
+    const periodo=(!inicio||!d||d>=inicio)&&(!fim||!d||d<=fim);
+    const st=status==='TODAS'||(status==='DESCONTADAS'&&c.comissaoDescontada===true)||(status==='APAGAR'&&c.comissaoDescontada===false);
+    return p&&periodo&&st;
+  }).sort((a,b)=>String(a.dataInicio||'').localeCompare(String(b.dataInicio||'')));
   if(!dados.length){alert('Nenhuma comissão encontrada para os filtros selecionados.');return;}
-  const total=dados.reduce((a,c)=>a+(Number(c.valor)||0),0); const janela=window.open('','_blank'); if(!janela){alert('O navegador bloqueou o relatório. Permita pop-ups para este sistema.');return;}
+
+  const descontadas=dados.filter(c=>c.comissaoDescontada===true);
+  const aPagar=dados.filter(c=>c.comissaoDescontada===false);
+  const semFinanceiro=dados.filter(c=>c.comissaoDescontada===null);
+  const total=dados.reduce((a,c)=>a+(Number(c.valor)||0),0);
+  const totalDescontadas=descontadas.reduce((a,c)=>a+(Number(c.valor)||0),0);
+  const totalAPagar=aPagar.reduce((a,c)=>a+(Number(c.valor)||0),0);
+  const totalSemFinanceiro=semFinanceiro.reduce((a,c)=>a+(Number(c.valor)||0),0);
+
+  const janela=window.open('','_blank');
+  if(!janela){alert('O navegador bloqueou o relatório. Permita pop-ups para este sistema.');return;}
   const periodo=(inicio||fim)?((inicio?formatarDataRelatorioFinanceiro(inicio):'Início aberto')+' a '+(fim?formatarDataRelatorioFinanceiro(fim):'Fim aberto')):'Todos os períodos';
-  janela.document.write('<html><head><title>Relatório de Comissões</title><style>body{font-family:Arial,sans-serif;color:#222;padding:30px;max-width:1100px;margin:auto}h1{margin-bottom:4px}h2{margin-top:28px;border-bottom:2px solid #222;padding-bottom:7px}.sub{color:#666;margin-bottom:20px}.resumo{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.box{border:1px solid #ccc;border-radius:8px;padding:12px}.box b{display:block;font-size:18px;margin-top:5px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px;vertical-align:top}th{background:#f2f2f2}.right{text-align:right}.rodape{margin-top:28px;font-size:11px;color:#777}@media print{body{padding:10px}.no-print{display:none}}</style></head><body>');
-  janela.document.write('<button class="no-print" onclick="window.print()" style="padding:10px 16px;margin-bottom:15px">🖨️ Imprimir / Salvar PDF</button><h1>RELATÓRIO DE COMISSÕES</h1><div class="sub">Secretaria Granemann • Parceiro: '+escaparHTML(parceiro||'Todos')+' • Período: '+escaparHTML(periodo)+' • Gerado em '+new Date().toLocaleString('pt-BR')+'</div>');
-  janela.document.write('<div class="resumo"><div class="box">Parceiro<b>'+escaparHTML(parceiro||'Todos')+'</b></div><div class="box">Rodeios<b>'+dados.length+'</b></div><div class="box">Total de comissões<b>'+formatarMoedaFinanceiro(total)+'</b></div></div>');
-  janela.document.write('<h2>Detalhamento</h2><table><tr><th>Data</th><th>Rodeio</th><th>Cidade</th><th>Parceiro</th><th>Motivo / observação</th><th class="right">Comissão</th></tr>');
-  dados.forEach(c=>janela.document.write('<tr><td>'+escaparHTML(c.dataInicio||'-')+'</td><td>'+escaparHTML(c.nomeRodeio||'-')+'</td><td>'+escaparHTML([c.cidade,c.estado].filter(Boolean).join('/ ')||'-')+'</td><td>'+escaparHTML(c.parceiro||'-')+'</td><td>'+escaparHTML(c.observacoes||'-')+'</td><td class="right">'+formatarMoedaFinanceiro(c.valor)+'</td></tr>'));
-  janela.document.write('<tr><th colspan="5" class="right">TOTAL</th><th class="right">'+formatarMoedaFinanceiro(total)+'</th></tr></table><div class="rodape">Relatório gerado pelo sistema Secretaria Granemann.</div></body></html>');
+  const filtroStatus=status==='TODAS'?'Todas as situações':status==='DESCONTADAS'?'Somente descontadas':'Somente a pagar';
+  janela.document.write('<html><head><title>Relatório de Comissões</title><style>body{font-family:Arial,sans-serif;color:#222;padding:30px;max-width:1150px;margin:auto}h1{margin-bottom:4px}h2{margin-top:28px;border-bottom:2px solid #222;padding-bottom:7px}.sub{color:#666;margin-bottom:20px}.resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.box{border:1px solid #ccc;border-radius:8px;padding:12px}.box b{display:block;font-size:18px;margin-top:5px}.box.destaque{border-width:2px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px;vertical-align:top}th{background:#f2f2f2}.right{text-align:right}.status{font-weight:bold}.descontada{color:#176b2c}.pagar{color:#a33b00}.sem{color:#666}.rodape{margin-top:28px;font-size:11px;color:#777}@media print{body{padding:10px}.no-print{display:none}.resumo{grid-template-columns:repeat(4,1fr)}}</style></head><body>');
+  janela.document.write('<button class="no-print" onclick="window.print()" style="padding:10px 16px;margin-bottom:15px">🖨️ Imprimir / Salvar PDF</button><h1>RELATÓRIO DE COMISSÕES</h1><div class="sub">Secretaria Granemann • Parceiro: '+escaparHTML(parceiro||'Todos')+' • Período: '+escaparHTML(periodo)+' • Filtro: '+escaparHTML(filtroStatus)+' • Gerado em '+new Date().toLocaleString('pt-BR')+'</div>');
+  janela.document.write('<div class="resumo"><div class="box">Total de comissões<b>'+formatarMoedaFinanceiro(total)+'</b></div><div class="box">Já descontadas<b class="descontada">'+formatarMoedaFinanceiro(totalDescontadas)+'</b></div><div class="box destaque">A pagar ao parceiro<b class="pagar">'+formatarMoedaFinanceiro(totalAPagar)+'</b></div><div class="box">Sem financeiro<b class="sem">'+formatarMoedaFinanceiro(totalSemFinanceiro)+'</b></div></div>');
+
+  function tabela(titulo,lista,totalSecao,classe){
+    janela.document.write('<h2>'+titulo+' — '+formatarMoedaFinanceiro(totalSecao)+'</h2>');
+    if(!lista.length){janela.document.write('<p>Nenhuma comissão nesta situação.</p>');return;}
+    janela.document.write('<table><tr><th>Data</th><th>Rodeio</th><th>Cidade</th><th>Parceiro</th><th>Motivo / observação</th><th>Situação</th><th class="right">Comissão</th></tr>');
+    lista.forEach(c=>{
+      const sit=c.comissaoDescontada===true?'DESCONTADA DO FATURAMENTO':c.comissaoDescontada===false?'A PAGAR AO PARCEIRO':'SEM FINANCEIRO';
+      janela.document.write('<tr><td>'+escaparHTML(c.dataInicio||'-')+'</td><td>'+escaparHTML(c.nomeRodeio||'-')+'</td><td>'+escaparHTML([c.cidade,c.estado].filter(Boolean).join('/ ')||'-')+'</td><td>'+escaparHTML(c.parceiro||'-')+'</td><td>'+escaparHTML(c.observacoes||'-')+'</td><td class="status '+classe+'">'+sit+'</td><td class="right">'+formatarMoedaFinanceiro(c.valor)+'</td></tr>');
+    });
+    janela.document.write('<tr><th colspan="6" class="right">TOTAL DA SEÇÃO</th><th class="right">'+formatarMoedaFinanceiro(totalSecao)+'</th></tr></table>');
+  }
+
+  tabela('Comissões já descontadas do faturamento',descontadas,totalDescontadas,'descontada');
+  tabela('Comissões que faltam pagar ao parceiro',aPagar,totalAPagar,'pagar');
+  if(semFinanceiro.length) tabela('Comissões sem lançamento financeiro — conferir',semFinanceiro,totalSemFinanceiro,'sem');
+  janela.document.write('<div class="rodape">Regra: comissão DESCONTADA reduz o valor a receber do cliente. Comissão A PAGAR não reduz o faturamento/contas a receber e permanece como obrigação com o parceiro.</div></body></html>');
   janela.document.close();janela.focus();
 }
 
@@ -1438,16 +1471,16 @@ async function gerarRelatorioFinanceiro(){
   const janela=window.open('','_blank');
   if(!janela){alert('O navegador bloqueou o relatório. Permita pop-ups para este sistema.');return;}
   janela.document.write('<html><head><title>Relatório Financeiro</title><style>body{font-family:Arial,sans-serif;color:#222;padding:30px;max-width:1100px;margin:auto}h1{margin-bottom:4px}h2{margin-top:28px;border-bottom:2px solid #222;padding-bottom:7px}.sub{color:#666;margin-bottom:20px}.resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.box{border:1px solid #ccc;border-radius:8px;padding:12px}.box b{display:block;font-size:18px;margin-top:5px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px}th{background:#f2f2f2}.right{text-align:right}.ok{font-weight:bold}.rodape{margin-top:28px;font-size:11px;color:#777}@media print{body{padding:10px}.no-print{display:none}.resumo{grid-template-columns:repeat(4,1fr)}}</style></head><body>');
-  const fat=dados.reduce((a,x)=>a+(Number(x.faturamento)||0),0), com=dados.reduce((a,x)=>a+(Number(x.comissao)||0),0), liq=dados.reduce((a,x)=>a+(Number(x.faturamentoLiquido)||0),0), rec=dados.reduce((a,x)=>a+(Number(x.recebido)||0),0), sal=Math.max(0,liq-rec);
+  const fat=dados.reduce((a,x)=>a+(Number(x.faturamento)||0),0), com=dados.reduce((a,x)=>a+(Number(x.comissao)||0),0), comPagar=dados.reduce((a,x)=>a+(x.comissaoDescontada===false?(Number(x.comissao)||0):0),0), liq=dados.reduce((a,x)=>a+(Number(x.faturamentoLiquido)||0),0), rec=dados.reduce((a,x)=>a+(Number(x.recebido)||0),0), sal=Math.max(0,liq-rec);
   const periodo=(document.getElementById('filtroMesFinanceiro')?.value&&document.getElementById('filtroMesFinanceiro').value!=='Todos')?nomeMesFinanceiro(document.getElementById('filtroMesFinanceiro').value):'Período selecionado';
   janela.document.write('<button class="no-print" onclick="window.print()" style="padding:10px 16px;margin-bottom:15px">🖨️ Imprimir / Salvar PDF</button><h1>RELATÓRIO FINANCEIRO</h1><div class="sub">Secretaria Granemann • '+periodo+' • Gerado em '+new Date().toLocaleString('pt-BR')+'</div>');
-  janela.document.write('<div class="resumo"><div class="box">Faturamento bruto<b>'+formatarMoedaFinanceiro(fat)+'</b></div><div class="box">Comissões<b>'+formatarMoedaFinanceiro(com)+'</b></div><div class="box">A receber líquido<b>'+formatarMoedaFinanceiro(liq)+'</b></div><div class="box">Recebido<b>'+formatarMoedaFinanceiro(rec)+'</b></div><div class="box">Saldo em aberto<b>'+formatarMoedaFinanceiro(sal)+'</b></div></div>');
-  janela.document.write('<h2>Resumo por rodeio</h2><table><tr><th>Rodeio</th><th>Data</th><th>Cliente</th><th>Forma(s) de pagamento</th><th class="right">Faturamento bruto</th><th class="right">Comissão</th><th class="right">A receber líquido</th><th class="right">Recebido</th><th class="right">Saldo</th><th>Status</th></tr>');
+  janela.document.write('<div class="resumo"><div class="box">Faturamento bruto<b>'+formatarMoedaFinanceiro(fat)+'</b></div><div class="box">Comissões<b>'+formatarMoedaFinanceiro(com)+'</b></div><div class="box">Comissões a pagar<b>'+formatarMoedaFinanceiro(comPagar)+'</b></div><div class="box">A receber líquido<b>'+formatarMoedaFinanceiro(liq)+'</b></div><div class="box">Recebido<b>'+formatarMoedaFinanceiro(rec)+'</b></div><div class="box">Saldo em aberto<b>'+formatarMoedaFinanceiro(sal)+'</b></div></div>');
+  janela.document.write('<h2>Resumo por rodeio</h2><table><tr><th>Rodeio</th><th>Data</th><th>Cliente</th><th>Forma(s) de pagamento</th><th class="right">Faturamento bruto</th><th class="right">Comissão</th><th>Comissão descontada?</th><th class="right">A receber líquido</th><th class="right">Recebido</th><th class="right">Saldo</th><th>Status</th></tr>');
   for(const f of dados){
     await carregarRecebimentosFinanceiro(f.id);
     const rs=recebimentosCache[f.id]||[];
     const formas=[...new Set(rs.map(r=>r.formaPagamento).filter(Boolean))].join(', ')||'-';
-    janela.document.write('<tr><td>'+escaparHTML(f.nomeRodeio||'-')+'</td><td>'+formatarDataRelatorioFinanceiro(obterDataRodeioFinanceiro(f))+'</td><td>'+escaparHTML(f.cliente||'-')+'</td><td>'+escaparHTML(formas)+'</td><td class="right">'+formatarMoedaFinanceiro(f.faturamento)+'</td><td class="right">'+formatarMoedaFinanceiro(f.comissao||0)+'</td><td class="right">'+formatarMoedaFinanceiro(f.faturamentoLiquido||0)+'</td><td class="right">'+formatarMoedaFinanceiro(f.recebido)+'</td><td class="right">'+formatarMoedaFinanceiro(Math.max(0,Number(f.saldo)||0))+'</td><td>'+escaparHTML(f.statusFinanceiro||'-')+'</td></tr>');
+    janela.document.write('<tr><td>'+escaparHTML(f.nomeRodeio||'-')+'</td><td>'+formatarDataRelatorioFinanceiro(obterDataRodeioFinanceiro(f))+'</td><td>'+escaparHTML(f.cliente||'-')+'</td><td>'+escaparHTML(formas)+'</td><td class="right">'+formatarMoedaFinanceiro(f.faturamento)+'</td><td class="right">'+formatarMoedaFinanceiro(f.comissao||0)+'</td><td>'+(f.comissaoDescontada===false?'NÃO — A PAGAR':'SIM — DESCONTADA')+'</td><td class="right">'+formatarMoedaFinanceiro(f.faturamentoLiquido||0)+'</td><td class="right">'+formatarMoedaFinanceiro(f.recebido)+'</td><td class="right">'+formatarMoedaFinanceiro(Math.max(0,Number(f.saldo)||0))+'</td><td>'+escaparHTML(f.statusFinanceiro||'-')+'</td></tr>');
   }
   janela.document.write('</table><h2>Detalhamento dos recebimentos</h2>');
   for(const f of dados){
@@ -1480,9 +1513,12 @@ function renderizarFinanceiro(dados){
   dados.forEach(function(f){
     const card=document.createElement('div');card.className='financeiro-card '+classeFinanceiro(f.statusFinanceiro);
     const saldo=Math.max(0,Number(f.saldo)||0);
+    const descontada = f.comissaoDescontada !== false;
+    const avisoComissao = Number(f.comissao||0)>0 ? ('<div style="margin:10px 0;padding:10px;border-radius:8px;background:#f5f5f5"><strong>Comissão: '+formatarMoedaFinanceiro(f.comissao||0)+'</strong> — '+(descontada?'DESCONTADA do valor a receber.':'<span style="font-weight:bold">NÃO DESCONTADA — fica a pagar ao parceiro.</span>')+'</div>') : '';
     card.innerHTML='<span class="financeiro-status">'+(f.statusFinanceiro==='Não recebido'?'🔴 NÃO RECEBIDO':f.statusFinanceiro==='Recebimento parcial'?'🟡 PARCIAL':f.statusFinanceiro==='Recebido integralmente'?'🟢 RECEBIDO INTEGRALMENTE':'🟣 ACIMA DO FATURAMENTO')+'</span>'+
       '<h3>'+escaparHTML(f.nomeRodeio||'Rodeio')+'</h3>'+
-      '<div class="info"><strong>Cliente:</strong> '+escaparHTML(f.cliente||'-')+(f.dataRodeio?'<br><strong>Data do rodeio:</strong> '+escaparHTML(f.dataRodeio):'')+(f.cidade?'<br><strong>Cidade:</strong> '+escaparHTML(f.cidade):'')+(f.vencimento?'<br><strong>Vencimento:</strong> '+escaparHTML(f.vencimento):'')+'</div>'+
+      '<div class="info"><strong>Cliente:</strong> '+escaparHTML(f.cliente||'-')+(f.dataRodeio?'<br><strong>Data do rodeio:</strong> '+escaparHTML(f.dataRodeio):'')+(f.cidade?'<br><strong>Cidade:</strong> '+escaparHTML(f.cidade):'')+(f.vencimento?'<br><strong>Vencimento:</strong> '+escaparHTML(f.vencimento):'')+'</div>'+avisoComissao+
+      '<div style="display:flex;align-items:center;gap:10px;margin:10px 0;padding:10px;border:1px solid #ddd;border-radius:8px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" '+(descontada?'checked':'')+' onchange="alterarComissaoDescontadaUI('+f.id+',this.checked)" style="width:18px;height:18px"> <strong>Comissão descontada do pagamento do cliente</strong></label></div>'+
       '<div class="financeiro-valores"><div class="financeiro-valor"><small>FATURAMENTO</small><strong>'+formatarMoedaFinanceiro(f.faturamento)+'</strong></div><div class="financeiro-valor"><small>COMISSÃO</small><strong>'+formatarMoedaFinanceiro(f.comissao||0)+'</strong></div><div class="financeiro-valor"><small>A RECEBER LÍQUIDO</small><strong>'+formatarMoedaFinanceiro(f.faturamentoLiquido||0)+'</strong></div><div class="financeiro-valor"><small>RECEBIDO</small><strong>'+formatarMoedaFinanceiro(f.recebido)+'</strong></div><div class="financeiro-valor"><small>SALDO</small><strong>'+formatarMoedaFinanceiro(saldo)+'</strong></div></div>'+
       '<div class="recebimentos-box"><strong>Histórico de recebimentos</strong><div id="historico-'+f.idFinanceiro+'">Carregando...</div>'+
       '<form class="recebimento-form" onsubmit="registrarRecebimentoFinanceiro(event,'+f.id+')">'+
@@ -1496,6 +1532,14 @@ function renderizarFinanceiro(dados){
     carregarRecebimentosFinanceiro(f.id).then(function(){const el=document.getElementById('historico-'+f.id);if(el)el.innerHTML=renderizarHistoricoRecebimentos(f.id);});
   });
 }
+async function alterarComissaoDescontadaUI(idFinanceiro,descontada){
+  try{
+    const r=await chamarAPI('alterarcomissaodescontada',{idFinanceiro:idFinanceiro,descontada:descontada?'true':'false'});
+    if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível alterar a comissão.');await carregarFinanceiro();return;}
+    await carregarFinanceiro();
+  }catch(e){alert('Erro ao alterar o desconto da comissão.');await carregarFinanceiro();}
+}
+
 async function registrarRecebimentoFinanceiro(event,idFinanceiro){
   event.preventDefault();
   const form=event.target;
