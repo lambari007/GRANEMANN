@@ -1019,8 +1019,11 @@ document.querySelectorAll('input[name="statusRodeio"]').forEach(function(input){
 function abrirContratoDoRodeio(id){
   const r=rodeiosCache.find(x=>String(x.id)===String(id));
   if(!r)return alert('Rodeio não encontrado.');
+
   abrirPagina('contratos', document.querySelector('.menu button[onclick*="contratos"]'));
   limparFormularioContrato();
+
+  // Dados gerais do rodeio
   definirCampoContrato('contratoIdRodeio',r.id);
   definirCampoContrato('contratoNomeRodeio',r.nomeEvento||'');
   definirCampoContrato('contratoDataInicio',converterDataParaInput(r.dataInicio));
@@ -1028,11 +1031,22 @@ function abrirContratoDoRodeio(id){
   definirCampoContrato('contratoLocalEvento',r.cidade ? r.cidade+' - '+(r.estado||'') : '');
   definirCampoContrato('contratoCidade',r.cidade||'');
   definirCampoContrato('contratoEstado',r.estado||'');
+
+  // Dados do cliente: vêm do cadastro de fechamento do rodeio
+  // (nomeDocumentoEvento = nome/razão social; CPF/CNPJ e endereço).
+  const nomeCliente = r.nomeDocumentoEvento || r.organizador || '';
+  definirCampoContrato('contratoCliente',nomeCliente);
+  definirCampoContrato('contratoCpfCnpj',r.cpfCnpjEvento||'');
+  definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
   definirCampoContrato('contratoResponsavel',r.organizador||'');
   definirCampoContrato('contratoTelefone',r.telefone||'');
-definirCampoContrato('contratoCpfCnpj',r.cpfCnpjEvento||'');
-definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
-  if((r.tipoDocumentoEvento||'')==='CNPJ'&&String(r.cpfCnpjEvento||'').replace(/\D/g,'').length===14)consultarCNPJParaContrato(r.cpfCnpjEvento);
+
+  // Se for CNPJ, consulta novamente para completar/confirmar razão social,
+  // endereço, CEP, cidade e UF automaticamente.
+  if((r.tipoDocumentoEvento||'')==='CNPJ' && String(r.cpfCnpjEvento||'').replace(/\D/g,'').length===14){
+    consultarCNPJParaContrato(r.cpfCnpjEvento);
+  }
+
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
