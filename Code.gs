@@ -1333,7 +1333,7 @@ function cadastrarRecebimento(dados) {
     let registro=null;
     for(let i=1;i<valores.length;i++) if(String(valores[i][0])===idFinanceiro){registro=valores[i];break;}
     if(!registro) return {sucesso:false,mensagem:'Faturamento não encontrado.'};
-    const atual=numeroFinanceiro_(registro[8]), faturamentoLiquido=numeroFinanceiro_(registro[8]);
+    const atual=numeroFinanceiro_(registro[9]), faturamentoLiquido=numeroFinanceiro_(registro[8]);
     if(atual+valor > faturamentoLiquido+0.009) return {sucesso:false,mensagem:'Este recebimento ultrapassa o faturamento. Confira o valor antes de lançar.'};
     const abaR=obterAbaRecebimentos_(), id=proximoIdGenerico_(abaR), usuario=Session.getActiveUser().getEmail()||'SISTEMA';
     abaR.appendRow([id,idFinanceiro,registro[1],valor,converterData(valorTexto_(dados.data))||new Date(),valorTexto_(dados.pagador),valorTexto_(dados.formaPagamento),valorTexto_(dados.observacoes),new Date(),usuario]);
