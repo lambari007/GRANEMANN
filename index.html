@@ -17,6 +17,13 @@ body{font-family:Arial,sans-serif;background:#f3f4f6;color:#222}
 .campo{text-align:left;margin-bottom:16px}
 .campo label{display:block;font-weight:bold;margin-bottom:7px}
 .campo input,.campo select{width:100%;padding:13px;border:1px solid #ccc;border-radius:9px;font-size:15px}
+.tipo-responsavel{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.tipo-responsavel-opcao{position:relative;flex:1;min-width:150px}
+.tipo-responsavel-opcao input{position:absolute;opacity:0;pointer-events:none}
+.tipo-responsavel-opcao label{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 14px;border:2px solid #ccc;border-radius:9px;background:#fff;cursor:pointer;font-weight:700;transition:.2s}
+.tipo-responsavel-opcao input:checked+label{border-color:#1f6feb;background:#eef5ff;box-shadow:0 0 0 2px rgba(31,111,235,.12)}
+.tipo-responsavel-ajuda{display:block;margin-top:6px;color:#777;font-size:12px}
+
 button{border:0;border-radius:9px;padding:13px 18px;background:#111;color:white;font-weight:bold;cursor:pointer}
 button:hover{background:#333}
 button:disabled{opacity:.6;cursor:not-allowed}
@@ -227,18 +234,35 @@ function abrirContratoDoRodeio(id){
 </div>
 
 <div class="campo">
-<label>Organizador</label>
+<label>Organizador / Parceiro</label>
 <input type="text" id="organizador" required>
+<small class="tipo-responsavel-ajuda">Informe o nome de quem está fazendo o contato.</small>
+</div>
+
+<div class="campo">
+<label>Tipo de contato</label>
+<div class="tipo-responsavel">
+  <div class="tipo-responsavel-opcao">
+    <input type="radio" name="tipoContatoRodeio" id="tipoOrganizador" value="Organizador">
+    <label for="tipoOrganizador">☑️ Organizador</label>
+  </div>
+  <div class="tipo-responsavel-opcao">
+    <input type="radio" name="tipoContatoRodeio" id="tipoParceiro" value="Parceiro">
+    <label for="tipoParceiro">🤝 Parceiro</label>
+  </div>
+</div>
 </div>
 
 <div class="campo">
 <label>Telefone para contato</label>
-<input type="text" id="telefone" placeholder="(49) 99999-9999">
+<input type="tel" id="telefone" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="(49) 99999-9999">
 </div>
 
 <div class="campo">
 <label>Cidade</label>
-<input type="text" id="cidade" required>
+<select id="cidade" required disabled>
+<option value="">Selecione primeiro o estado</option>
+</select>
 </div>
 
 <div class="campo">
@@ -639,7 +663,8 @@ function renderizarRodeios(dados){
     statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_contatado" value="Contatado" '+(status==='Contatado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_contatado" class="status-contatado">🟡 Contatado</label></div>';
     statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_fechado" value="Fechado" '+(status==='Fechado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_fechado" class="status-fechado">🟢 Fechado</label></div>';
     statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_seminteresse" value="Sem interesse" '+(status==='Sem interesse'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_seminteresse" class="status-sem-interesse">🔴 Sem interesse</label></div></div></div>';
-    card.innerHTML=imagem+'<div class="rodeio-conteudo"><h3>'+escaparHTML(rodeio.nomeEvento)+'</h3><div class="rodeio-info"><strong>Organizador:</strong> '+escaparHTML(rodeio.organizador)+'<br><strong>Local:</strong> '+escaparHTML(rodeio.cidade)+' - '+escaparHTML(rodeio.estado)+'<br><strong>Data:</strong> '+escaparHTML(rodeio.dataInicio)+' até '+escaparHTML(rodeio.dataFim)+'<br><strong>Telefone:</strong> '+escaparHTML(rodeio.telefone||'-')+'</div>'+statusHTML+'<div class="rodeio-acoes"><button onclick="editarRodeio('+rodeio.id+')">✏️ Editar</button>'+(status==='Fechado'?'<button onclick="abrirContratoDoRodeio('+rodeio.id+')">📄 CONTRATO</button>':'')+'<button class="btn-perigo" onclick="excluirRodeio('+rodeio.id+')">🗑️ Excluir</button></div></div>';
+    const rotuloResponsavel=rodeio.tipoContato==='Parceiro'?'Parceiro':'Organizador';
+    card.innerHTML=imagem+'<div class="rodeio-conteudo"><h3>'+escaparHTML(rodeio.nomeEvento)+'</h3><div class="rodeio-info"><strong>'+rotuloResponsavel+':</strong> '+escaparHTML(rodeio.organizador)+'<br><strong>Local:</strong> '+escaparHTML(rodeio.cidade)+' - '+escaparHTML(rodeio.estado)+'<br><strong>Data:</strong> '+escaparHTML(rodeio.dataInicio)+' até '+escaparHTML(rodeio.dataFim)+'<br><strong>Telefone:</strong> '+escaparHTML(rodeio.telefone||'-')+'</div>'+statusHTML+'<div class="rodeio-acoes"><button onclick="editarRodeio('+rodeio.id+')">✏️ Editar</button>'+(status==='Fechado'?'<button onclick="abrirContratoDoRodeio('+rodeio.id+')">📄 CONTRATO</button>':'')+'<button class="btn-perigo" onclick="excluirRodeio('+rodeio.id+')">🗑️ Excluir</button></div></div>';
     fragment.appendChild(card);
   });lista.innerHTML='';lista.appendChild(fragment);
 }
@@ -664,6 +689,58 @@ async function carregarRodeios(forcar=false){
 function configurarFiltros(){const busca=document.getElementById('buscaRodeios'),status=document.getElementById('filtroStatusRodeios');if(busca&&!busca.dataset.configurado){busca.dataset.configurado='1';busca.addEventListener('input',aplicarFiltrosRodeios);}if(status&&!status.dataset.configurado){status.dataset.configurado='1';status.addEventListener('change',aplicarFiltrosRodeios);}}
 configurarFiltros();
 
+/* CIDADE E TELEFONE */
+async function carregarCidadesRodeio(uf,cidadeSelecionada=''){
+  const cidade=document.getElementById('cidade');
+  if(!cidade)return;
+  cidade.disabled=true;
+  cidade.innerHTML='<option value="">Carregando cidades...</option>';
+  if(!uf){cidade.innerHTML='<option value="">Selecione primeiro o estado</option>';return;}
+  try{
+    const resposta=await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados/'+encodeURIComponent(uf)+'/municipios');
+    if(!resposta.ok)throw new Error('Falha ao carregar cidades');
+    const cidades=await resposta.json();
+    cidade.innerHTML='<option value="">Selecione a cidade</option>';
+    cidades.sort(function(a,b){return a.nome.localeCompare(b.nome,'pt-BR');}).forEach(function(item){
+      const opt=document.createElement('option');
+      opt.value=item.nome;opt.textContent=item.nome;cidade.appendChild(opt);
+    });
+    cidade.disabled=false;
+    if(cidadeSelecionada){
+      const existe=Array.from(cidade.options).some(function(o){return o.value===cidadeSelecionada;});
+      if(!existe){const opt=document.createElement('option');opt.value=cidadeSelecionada;opt.textContent=cidadeSelecionada;cidade.appendChild(opt);}
+      cidade.value=cidadeSelecionada;
+    }
+  }catch(e){
+    console.error(e);
+    cidade.innerHTML='<option value="">Não foi possível carregar as cidades</option>';
+    if(cidadeSelecionada){const opt=document.createElement('option');opt.value=cidadeSelecionada;opt.textContent=cidadeSelecionada;cidade.appendChild(opt);cidade.value=cidadeSelecionada;}
+    cidade.disabled=false;
+  }
+}
+
+(function configurarCamposRodeio(){
+  const estado=document.getElementById('estado');
+  const telefone=document.getElementById('telefone');
+  if(estado&&!estado.dataset.cidadeConfigurada){
+    estado.dataset.cidadeConfigurada='1';
+    estado.addEventListener('change',function(){carregarCidadesRodeio(this.value);});
+  }
+  if(telefone&&!telefone.dataset.mascaraConfigurada){
+    telefone.dataset.mascaraConfigurada='1';
+    telefone.addEventListener('input',function(){
+      let v=this.value.replace(/\D/g,'').slice(0,11);
+      if(v.length>10)v='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
+      else if(v.length>6)v='('+v.slice(0,2)+') '+v.slice(2,6)+'-'+v.slice(6);
+      else if(v.length>2)v='('+v.slice(0,2)+') '+v.slice(2);
+      else if(v.length>0)v='('+v;
+      this.value=v;
+    });
+  }
+  const tipo=document.querySelector('input[name="tipoContatoRodeio"]');
+  if(tipo&&!document.querySelector('input[name="tipoContatoRodeio"]:checked'))tipo.checked=true;
+})();
+
 /* SALVAR RODEIO */
 
 document.getElementById('formRodeio').addEventListener('submit',async function(event){
@@ -681,6 +758,7 @@ const dados={
 
 nomeEvento:document.getElementById('nomeEvento').value,
 organizador:document.getElementById('organizador').value,
+tipoContato:(document.querySelector('input[name="tipoContatoRodeio"]:checked')||{}).value||'Organizador',
 cidade:document.getElementById('cidade').value,
 estado:document.getElementById('estado').value,
 dataInicio:document.getElementById('dataInicio').value,
@@ -757,8 +835,12 @@ return;
 document.getElementById('rodeioId').value=rodeio.id;
 document.getElementById('nomeEvento').value=rodeio.nomeEvento||'';
 document.getElementById('organizador').value=rodeio.organizador||'';
-document.getElementById('cidade').value=rodeio.cidade||'';
 document.getElementById('estado').value=rodeio.estado||'';
+await carregarCidadesRodeio(rodeio.estado||'',rodeio.cidade||'');
+document.getElementById('cidade').value=rodeio.cidade||'';
+document.querySelectorAll('input[name="tipoContatoRodeio"]').forEach(function(input){
+  input.checked=(input.value===(rodeio.tipoContato||rodeio.tipo||'Organizador'));
+});
 document.getElementById('dataInicio').value=converterDataParaInput(rodeio.dataInicio);
 document.getElementById('dataFim').value=converterDataParaInput(rodeio.dataFim);
 document.getElementById('telefone').value=rodeio.telefone||'';
@@ -820,6 +902,11 @@ document.getElementById('rodeioId').value='';
 document.querySelectorAll('input[name="statusRodeio"]').forEach(function(input){
   input.checked=false;
 });
+document.querySelectorAll('input[name="tipoContatoRodeio"]').forEach(function(input){
+  input.checked=(input.value==='Organizador');
+});
+const cidadeEl=document.getElementById('cidade');
+if(cidadeEl){cidadeEl.innerHTML='<option value="">Selecione primeiro o estado</option>';cidadeEl.disabled=true;}
 
 }
 
