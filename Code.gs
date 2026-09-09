@@ -8,6 +8,64 @@ const ABA_PARCEIROS = 'PARCEIROS';
 const ID_PLANILHA = '1qlcBUZV9zBK8e1OvcxG8N7y-PVL7FwiPPML3T84liCc';
 
 
+
+
+// =====================================================
+// CONTROLE DE ACESSO POR PERFIL
+// =====================================================
+// Perfis aceitos na coluna E da aba USUARIOS:
+// ADMINISTRADOR (ou ADMIN) = acesso completo
+// VISUALIZADOR = somente Início, Rodeios e Contratos
+
+function criarSessaoAPI(id, usuario, nivel, nome) {
+  const token = Utilities.getUuid();
+  const dados = JSON.stringify({ id: id, usuario: usuario, nivel: nivel, nome: nome });
+  CacheService.getScriptCache().put('sessao_' + token, dados, 21600); // 6 horas
+  return token;
+}
+
+function obterSessaoAPI(token) {
+  if (!token) return null;
+  const bruto = CacheService.getScriptCache().get('sessao_' + String(token));
+  if (!bruto) return null;
+  try { return JSON.parse(bruto); } catch (e) { return null; }
+}
+
+function perfilEhAdmin(nivel) {
+  const n = String(nivel || '').trim().toUpperCase();
+  return n === 'ADMIN' || n === 'ADMINISTRADOR' || n === 'ADMINISTRADOR(A)';
+}
+
+function acaoPermitidaPorPerfil(acao, nivel) {
+  if (perfilEhAdmin(nivel)) return true;
+
+  // O perfil VISUALIZADOR pode consultar e preencher somente Rodeios e Contratos.
+  const permitidasVisualizador = [
+    'listarrodeios',
+    'cadastrarrodeio',
+    'editarrodeio',
+    'alterarstatusrodeio',
+    'excluirrodeio',
+    'listarcontratos',
+    'listarcontratospendentes',
+    'cadastrarcontrato',
+    'editarcontrato'
+  ];
+
+  return permitidasVisualizador.indexOf(String(acao || '').toLowerCase()) !== -1;
+}
+
+function autorizarAPI(params, acao) {
+  const sessao = obterSessaoAPI(params && params.token);
+  if (!sessao) {
+    return { sucesso: false, codigo: 'NAO_AUTORIZADO', mensagem: 'Sessão expirada ou acesso não autorizado. Faça login novamente.' };
+  }
+  if (!acaoPermitidaPorPerfil(acao, sessao.nivel)) {
+    return { sucesso: false, codigo: 'SEM_PERMISSAO', mensagem: 'Seu usuário não tem permissão para acessar esta função.' };
+  }
+  return sessao;
+}
+
 // =====================================================
 // API PRINCIPAL
 // =====================================================
@@ -19,6 +77,11 @@ function doGet(e) {
 
   if (acao === 'login') {
     return respostaJSONP(fazerLoginAPI(params), params.callback);
+  }
+
+  const sessao = autorizarAPI(params, acao);
+  if (sessao && sessao.sucesso === false) {
+    return respostaJSONP(sessao, params.callback);
   }
 
   if (acao === 'listarrodeios') {
@@ -289,12 +352,14 @@ function fazerLoginAPI(params) {
       senhaPlanilha === senha
     ) {
 
+      const token = criarSessaoAPI(id, usuarioPlanilha, nivel, nome);
       return {
         sucesso: true,
         id: id,
         usuario: usuarioPlanilha,
         nome: nome,
-        nivel: nivel
+        nivel: nivel,
+        token: token
       };
     }
   }

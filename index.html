@@ -557,9 +557,13 @@ return new Promise(function(resolve,reject){
 const callback='callback_'+Date.now()+'_'+Math.floor(Math.random()*10000);
 const script=document.createElement('script');
 
+let sessaoAtual=null;
+try{sessaoAtual=JSON.parse(sessionStorage.getItem('usuario')||'null');}catch(e){sessaoAtual=null;}
+
 const query=new URLSearchParams({
 acao:acao,
 callback:callback,
+...(sessaoAtual&&sessaoAtual.token?{token:sessaoAtual.token}:{}),
 ...parametros
 });
 
@@ -576,6 +580,13 @@ try{delete window[callback]}catch(e){}
 
 window[callback]=function(resultado){
 cleanup();
+if(resultado&&resultado.codigo==='NAO_AUTORIZADO'){
+  sessionStorage.removeItem('usuario');
+  document.getElementById('sistema').style.display='none';
+  document.getElementById('telaLogin').style.display='flex';
+  const msg=document.getElementById('mensagemLogin');
+  if(msg)msg.textContent='Sessão expirada. Faça login novamente.';
+}
 resolve(resultado);
 };
 
@@ -623,6 +634,7 @@ setTimeout(function(){
 document.getElementById('telaLogin').style.display='none';
 document.getElementById('sistema').style.display='block';
 document.getElementById('nomeUsuario').textContent=resultado.nome||resultado.usuario;
+aplicarPermissoesUsuario(resultado);
 configurarFiltros();
 configurarFiltrosFinanceiro();
 carregarRodeios();
@@ -650,6 +662,24 @@ botao.textContent='ENTRAR';
 
 });
 
+
+/* PERMISSÕES DA INTERFACE */
+function aplicarPermissoesUsuario(usuario){
+  const nivel=String((usuario&&usuario.nivel)||'').trim().toUpperCase();
+  const ehAdmin=['ADMIN','ADMINISTRADOR','ADMINISTRADOR(A)'].includes(nivel);
+  const permitidas=['inicio','rodeios','contratos'];
+  document.querySelectorAll('.menu button[onclick*="abrirPagina"]').forEach(function(btn){
+    const m=btn.getAttribute('onclick').match(/abrirPagina\('([^']+)'/);
+    if(!m)return;
+    const nome=m[1];
+    if(nome==='inicio'||ehAdmin){btn.style.display='';return;}
+    btn.style.display=permitidas.includes(nome)?'':'none';
+  });
+  // Se for visualizador, começa sempre em Início.
+  if(!ehAdmin){
+    abrirPagina('inicio',document.querySelector('.menu button[onclick*="abrirPagina(\'inicio\'"]'));
+  }
+}
 
 /* MENU */
 
@@ -1849,6 +1879,7 @@ const usuario=JSON.parse(salvo);
 document.getElementById('telaLogin').style.display='none';
 document.getElementById('sistema').style.display='block';
 document.getElementById('nomeUsuario').textContent=usuario.nome||usuario.usuario;
+aplicarPermissoesUsuario(usuario);
 
 configurarFiltros();
 configurarFiltrosFinanceiro();
