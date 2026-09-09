@@ -4,6 +4,7 @@ const ABA_CONTRATOS = 'CONTRATOS';
 const ABA_FINANCEIRO = 'FINANCEIRO';
 const ABA_RECEBIMENTOS = 'RECEBIMENTOS';
 const ABA_COMISSOES = 'COMISSOES';
+const ABA_PARCEIROS = 'PARCEIROS';
 const ID_PLANILHA = '1qlcBUZV9zBK8e1OvcxG8N7y-PVL7FwiPPML3T84liCc';
 
 
@@ -29,6 +30,8 @@ function doGet(e) {
     const dados = {
       nomeEvento: params.nomeEvento || '',
       organizador: params.organizador || '',
+      tipoContato: params.tipoContato || 'Organizador',
+      parceiroId: params.parceiroId || '',
       cidade: params.cidade || '',
       estado: params.estado || '',
       dataInicio: params.dataInicio || '',
@@ -51,6 +54,8 @@ function doGet(e) {
       id: params.id || '',
       nomeEvento: params.nomeEvento || '',
       organizador: params.organizador || '',
+      tipoContato: params.tipoContato || 'Organizador',
+      parceiroId: params.parceiroId || '',
       cidade: params.cidade || '',
       estado: params.estado || '',
       dataInicio: params.dataInicio || '',
@@ -144,6 +149,12 @@ function doGet(e) {
   }
 
   if (acao === 'excluircomissao') return respostaJSONP(excluirComissao(params.id), params.callback);
+
+  if (acao === 'listarparceiros') return respostaJSONP(listarParceiros(), params.callback);
+
+  if (acao === 'cadastrarparceiro') return respostaJSONP(cadastrarParceiro({id:params.id||'',nome:params.nome||'',telefone:params.telefone||'',documento:params.documento||'',observacoes:params.observacoes||''}), params.callback);
+
+  if (acao === 'excluirparceiro') return respostaJSONP(excluirParceiro(params.id), params.callback);
 
   if (acao === 'listarfinanceiro') {
     return respostaJSONP(listarFinanceiro(), params.callback);
@@ -310,7 +321,7 @@ function garantirColunaStatus() {
   const cabecalhos = [
     'ID','NOME_EVENTO','ORGANIZADOR','CIDADE','ESTADO','DATA_INICIO','DATA_FIM',
     'TELEFONE','FOTO_PROGRAMACAO','DATA_CADASTRO','USUARIO_CADASTRO','STATUS',
-    'TIPO_DOCUMENTO_EVENTO','CPF_CNPJ_EVENTO','ENDERECO_EVENTO','NOME_DOCUMENTO_EVENTO'
+    'TIPO_DOCUMENTO_EVENTO','CPF_CNPJ_EVENTO','ENDERECO_EVENTO','NOME_DOCUMENTO_EVENTO','TIPO_CONTATO','PARCEIRO_ID'
   ];
 
   if (aba.getMaxColumns() < cabecalhos.length) {
@@ -411,7 +422,9 @@ function listarRodeios() {
         tipoDocumentoEvento: valores[i][12] || '',
         cpfCnpjEvento: valores[i][13] || '',
         enderecoEvento: valores[i][14] || '',
-        nomeDocumentoEvento: valores[i][15] || ''
+        nomeDocumentoEvento: valores[i][15] || '',
+        tipoContato: valores[i][16] || 'Organizador',
+        parceiroId: valores[i][17] || ''
       });
     }
 
@@ -571,7 +584,9 @@ function cadastrarRodeio(dados) {
       String(dados.tipoDocumentoEvento || '').trim().toUpperCase(),
       String(dados.cpfCnpjEvento || '').trim(),
       String(dados.enderecoEvento || '').trim(),
-      String(dados.nomeDocumentoEvento || '').trim()
+      String(dados.nomeDocumentoEvento || '').trim(),
+      String(dados.tipoContato || 'Organizador').trim(),
+      String(dados.parceiroId || '').trim()
     ]);
 
     return {
@@ -652,7 +667,7 @@ function editarRodeio(dados) {
           linha,
           2,
           1,
-          15
+          17
         ).setValues([[
           String(dados.nomeEvento || '').trim(),
           String(dados.organizador || '').trim(),
@@ -668,7 +683,9 @@ function editarRodeio(dados) {
           String(dados.tipoDocumentoEvento || valores[i][12] || '').trim().toUpperCase(),
           String(dados.cpfCnpjEvento || valores[i][13] || '').trim(),
           String(dados.enderecoEvento || valores[i][14] || '').trim(),
-          String(dados.nomeDocumentoEvento || valores[i][15] || '').trim()
+          String(dados.nomeDocumentoEvento || valores[i][15] || '').trim(),
+          String(dados.tipoContato || valores[i][16] || 'Organizador').trim(),
+          String(dados.parceiroId || valores[i][17] || '').trim()
         ]]);
 
         return {
@@ -1042,6 +1059,22 @@ function editarContrato(dados) {
     return { sucesso: false, mensagem: 'Erro ao editar contrato: ' + erro.message };
   }
 }
+
+// =====================================================
+// PARCEIROS
+// =====================================================
+const CABECALHO_PARCEIROS=['ID','NOME','TELEFONE','DOCUMENTO','OBSERVACOES','DATA_CADASTRO','USUARIO_CADASTRO'];
+function obterAbaParceiros_(){
+  const p=SpreadsheetApp.openById(ID_PLANILHA); let a=p.getSheetByName(ABA_PARCEIROS);
+  if(!a)a=p.insertSheet(ABA_PARCEIROS);
+  if(a.getMaxColumns()<CABECALHO_PARCEIROS.length)a.insertColumnsAfter(a.getMaxColumns(),CABECALHO_PARCEIROS.length-a.getMaxColumns());
+  const c=a.getRange(1,1,1,CABECALHO_PARCEIROS.length).getValues()[0];
+  if(CABECALHO_PARCEIROS.some((h,i)=>String(c[i]||'').trim()!==h))a.getRange(1,1,1,CABECALHO_PARCEIROS.length).setValues([CABECALHO_PARCEIROS]);
+  a.setFrozenRows(1); return a;
+}
+function listarParceiros(){try{const a=obterAbaParceiros_(),v=a.getDataRange().getValues(),d=[];for(let i=1;i<v.length;i++){if(!v[i][0]||!v[i][1])continue;d.push({id:v[i][0],nome:v[i][1]||'',telefone:v[i][2]||'',documento:v[i][3]||'',observacoes:v[i][4]||''});}return{sucesso:true,dados:d};}catch(e){return{sucesso:false,mensagem:'Erro ao listar parceiros: '+e.message,dados:[]};}}
+function cadastrarParceiro(d){try{const nome=valorTexto_(d.nome);if(!nome)return{sucesso:false,mensagem:'Informe o nome do parceiro.'};const a=obterAbaParceiros_(),v=a.getDataRange().getValues();let linha=-1,id='';for(let i=1;i<v.length;i++)if(String(v[i][0])===String(d.id)){linha=i+1;id=v[i][0];break;}if(linha<0)id=proximoIdGenerico_(a);const row=[id,nome,valorTexto_(d.telefone),valorTexto_(d.documento),valorTexto_(d.observacoes),new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];if(linha<0)a.appendRow(row);else a.getRange(linha,1,1,CABECALHO_PARCEIROS.length).setValues([row]);return{sucesso:true,mensagem:'Parceiro salvo com sucesso.',id:id};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar parceiro: '+e.message};}}
+function excluirParceiro(id){try{const a=obterAbaParceiros_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){a.deleteRow(i+1);return{sucesso:true,mensagem:'Parceiro excluído com sucesso.'};}return{sucesso:false,mensagem:'Parceiro não encontrado.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir parceiro: '+e.message};}}
 
 // =====================================================
 // COMISSÕES
