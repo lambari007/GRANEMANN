@@ -49,7 +49,10 @@ function acaoPermitidaPorPerfil(acao, nivel) {
     'listarcontratos',
     'listarcontratospendentes',
     'cadastrarcontrato',
-    'editarcontrato'
+    'editarcontrato',
+    // Necessário para o Visualizador poder selecionar parceiros dentro de Rodeios.
+    // Isso não libera a tela de cadastro de parceiros; libera apenas a consulta da lista.
+    'listarparceiros'
   ];
 
   return permitidasVisualizador.indexOf(String(acao || '').toLowerCase()) !== -1;
