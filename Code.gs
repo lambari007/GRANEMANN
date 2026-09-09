@@ -34,7 +34,11 @@ function doGet(e) {
       dataFim: params.dataFim || '',
       telefone: params.telefone || '',
       fotoProgramacao: params.fotoProgramacao || '',
-      status: params.status || ''
+      status: params.status || '',
+      tipoDocumentoEvento: params.tipoDocumentoEvento || '',
+      cpfCnpjEvento: params.cpfCnpjEvento || '',
+      enderecoEvento: params.enderecoEvento || '',
+      nomeDocumentoEvento: params.nomeDocumentoEvento || ''
     };
 
     return respostaJSONP(cadastrarRodeio(dados), params.callback);
@@ -52,7 +56,11 @@ function doGet(e) {
       dataFim: params.dataFim || '',
       telefone: params.telefone || '',
       fotoProgramacao: params.fotoProgramacao || '',
-      status: params.status || ''
+      status: params.status || '',
+      tipoDocumentoEvento: params.tipoDocumentoEvento || '',
+      cpfCnpjEvento: params.cpfCnpjEvento || '',
+      enderecoEvento: params.enderecoEvento || '',
+      nomeDocumentoEvento: params.nomeDocumentoEvento || ''
     };
 
     return respostaJSONP(editarRodeio(dados), params.callback);
@@ -282,41 +290,34 @@ function fazerLoginAPI(params) {
 
 function garantirColunaStatus() {
 
-  const planilha =
-    SpreadsheetApp.openById(
-      '1qlcBUZV9zBK8e1OvcxG8N7y-PVL7FwiPPML3T84liCc'
-    );
+  const planilha = SpreadsheetApp.openById(ID_PLANILHA);
+  const aba = planilha.getSheetByName(ABA_RODEIOS);
 
-  const aba =
-    planilha.getSheetByName(ABA_RODEIOS);
+  if (!aba) return null;
 
-  if (!aba) {
-    return null;
+  // Estrutura oficial da aba RODEIOS.
+  // As 4 últimas colunas guardam os dados do cliente informados
+  // no fechamento e são usados automaticamente na aba Contratos.
+  const cabecalhos = [
+    'ID','NOME_EVENTO','ORGANIZADOR','CIDADE','ESTADO','DATA_INICIO','DATA_FIM',
+    'TELEFONE','FOTO_PROGRAMACAO','DATA_CADASTRO','USUARIO_CADASTRO','STATUS',
+    'TIPO_DOCUMENTO_EVENTO','CPF_CNPJ_EVENTO','ENDERECO_EVENTO','NOME_DOCUMENTO_EVENTO'
+  ];
+
+  if (aba.getMaxColumns() < cabecalhos.length) {
+    aba.insertColumnsAfter(aba.getMaxColumns(), cabecalhos.length - aba.getMaxColumns());
   }
 
-  if (aba.getMaxColumns() < 12) {
-
-    aba.insertColumnsAfter(
-      aba.getMaxColumns(),
-      12 - aba.getMaxColumns()
-    );
+  const cab = aba.getRange(1, 1, 1, cabecalhos.length).getValues()[0];
+  for (let i = 0; i < cabecalhos.length; i++) {
+    if (String(cab[i] || '').trim() !== cabecalhos[i]) {
+      aba.getRange(1, i + 1).setValue(cabecalhos[i]);
+    }
   }
-
-  const cabecalho =
-    aba.getRange(1, 1, 1, 12).getValues()[0];
-
-  if (
-    String(cabecalho[11] || '')
-      .trim()
-      .toUpperCase() !== 'STATUS'
-  ) {
-
-    aba.getRange(1, 12).setValue('STATUS');
-  }
+  aba.setFrozenRows(1);
 
   return aba;
 }
-
 
 // =====================================================
 // NORMALIZAR STATUS
@@ -397,7 +398,11 @@ function listarRodeios() {
         fotoProgramacao: valores[i][8] || '',
         dataCadastro: formatarDataHora(valores[i][9]),
         usuarioCadastro: valores[i][10] || '',
-        status: normalizarStatus(valores[i][11])
+        status: normalizarStatus(valores[i][11]),
+        tipoDocumentoEvento: valores[i][12] || '',
+        cpfCnpjEvento: valores[i][13] || '',
+        enderecoEvento: valores[i][14] || '',
+        nomeDocumentoEvento: valores[i][15] || ''
       });
     }
 
@@ -553,7 +558,11 @@ function cadastrarRodeio(dados) {
       fotoProgramacao,
       agora,
       usuario,
-      status
+      status,
+      String(dados.tipoDocumentoEvento || '').trim().toUpperCase(),
+      String(dados.cpfCnpjEvento || '').trim(),
+      String(dados.enderecoEvento || '').trim(),
+      String(dados.nomeDocumentoEvento || '').trim()
     ]);
 
     return {
@@ -634,7 +643,7 @@ function editarRodeio(dados) {
           linha,
           2,
           1,
-          11
+          15
         ).setValues([[
           String(dados.nomeEvento || '').trim(),
           String(dados.organizador || '').trim(),
@@ -646,7 +655,11 @@ function editarRodeio(dados) {
           fotoFinal,
           valores[i][9] || new Date(),
           valores[i][10] || 'SISTEMA',
-          novoStatus
+          novoStatus,
+          String(dados.tipoDocumentoEvento || valores[i][12] || '').trim().toUpperCase(),
+          String(dados.cpfCnpjEvento || valores[i][13] || '').trim(),
+          String(dados.enderecoEvento || valores[i][14] || '').trim(),
+          String(dados.nomeDocumentoEvento || valores[i][15] || '').trim()
         ]]);
 
         return {
