@@ -132,28 +132,33 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
 
 
 /* FINANCEIRO */
-.financeiro-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.financeiro-resumo .resumo-card{min-height:92px}
-.lista-financeiro{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
-.financeiro-card{border:3px solid #d32f2f;border-radius:14px;background:#ffe8e8;padding:18px;transition:.2s}
+.financeiro-resumo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.financeiro-resumo .resumo-card{min-height:92px;min-width:0;box-sizing:border-box}
+.lista-financeiro{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(330px,100%),1fr));gap:16px;width:100%;min-width:0}
+.financeiro-card{border:3px solid #d32f2f;border-radius:14px;background:#ffe8e8;padding:18px;transition:.2s;min-width:0;width:100%;box-sizing:border-box;overflow:hidden}
 .financeiro-card:hover{transform:translateY(-1px);box-shadow:0 5px 18px rgba(0,0,0,.12)}
 .financeiro-card.parcial{border-color:#e0b400;background:#fff9d6}
 .financeiro-card.quitado{border-color:#2e9b4b;background:#e8f7e8}
 .financeiro-card.acima{border-color:#7b1fa2;background:#f4e8f8}
-.financeiro-status{display:inline-block;padding:7px 11px;border-radius:20px;font-size:12px;font-weight:800;margin-bottom:10px}
+.financeiro-status{display:inline-block;padding:7px 11px;border-radius:20px;font-size:12px;font-weight:800;margin-bottom:10px;max-width:100%;box-sizing:border-box}
 .financeiro-card.nao-recebido .financeiro-status{background:#d32f2f;color:#fff}
 .financeiro-card.parcial .financeiro-status{background:#e0b400;color:#222}
 .financeiro-card.quitado .financeiro-status{background:#2e9b4b;color:#fff}
 .financeiro-card.acima .financeiro-status{background:#7b1fa2;color:#fff}
-.financeiro-valores{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:15px 0}
-.financeiro-valor{background:rgba(255,255,255,.7);border-radius:9px;padding:10px;text-align:center}
-.financeiro-valor small{display:block;color:#666;font-size:11px;margin-bottom:4px}.financeiro-valor strong{font-size:17px}
-.recebimentos-box{margin-top:15px;padding-top:15px;border-top:1px solid rgba(0,0,0,.12)}
-.recebimento-form{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px;padding:14px;background:rgba(255,255,255,.75);border-radius:10px}
+.financeiro-valores{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:15px 0;min-width:0}
+.financeiro-valor{background:rgba(255,255,255,.7);border-radius:9px;padding:9px 6px;text-align:center;min-width:0;box-sizing:border-box;overflow:hidden}
+.financeiro-valor small{display:block;color:#666;font-size:10px;line-height:1.2;margin-bottom:4px;overflow-wrap:anywhere}.financeiro-valor strong{font-size:15px;line-height:1.2;overflow-wrap:anywhere;word-break:break-word}
+.financeiro-card h3,.financeiro-card .info,.financeiro-card label,.financeiro-card .recebimentos-box{min-width:0;overflow-wrap:anywhere;word-break:break-word}
+.financeiro-card input,.financeiro-card select,.financeiro-card button{max-width:100%;box-sizing:border-box}
+.recebimentos-box{margin-top:15px;padding-top:15px;border-top:1px solid rgba(0,0,0,.12);min-width:0}
+.recebimento-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px;padding:14px;background:rgba(255,255,255,.75);border-radius:10px;min-width:0;box-sizing:border-box}
 .recebimento-form .campo-full{grid-column:1/-1}
-.historico-recebimentos{margin-top:12px}.recebimento-item{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.1);font-size:13px}.recebimento-item:last-child{border-bottom:0}
-.financeiro-filtros{display:grid;grid-template-columns:minmax(240px,1.5fr) repeat(4,minmax(150px,1fr)) minmax(170px,auto);gap:10px;margin-bottom:18px;align-items:end}.financeiro-filtros input,.financeiro-filtros select{width:100%;box-sizing:border-box}.financeiro-filtros button{width:100%;min-height:42px}.relatorio-btn{margin-left:auto}.relatorio-fechamento{border:1px solid #ddd;border-radius:12px;padding:14px;margin:15px 0;background:#fafafa}@media(max-width:1100px){.financeiro-filtros{grid-template-columns:repeat(3,1fr)}}@media(max-width:800px){.financeiro-resumo{grid-template-columns:repeat(2,1fr)}.financeiro-valores{grid-template-columns:1fr}.recebimento-form{grid-template-columns:1fr}.recebimento-form .campo-full{grid-column:auto}.financeiro-filtros{grid-template-columns:1fr}}
-
+.historico-recebimentos{margin-top:12px;min-width:0}.recebimento-item{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.1);font-size:13px;min-width:0}.recebimento-item>div{min-width:0;overflow-wrap:anywhere}.recebimento-item button{flex:0 0 auto}
+.recebimento-item:last-child{border-bottom:0}
+.financeiro-filtros{display:grid;grid-template-columns:minmax(200px,1.5fr) repeat(4,minmax(130px,1fr)) minmax(160px,auto);gap:10px;margin-bottom:18px;align-items:end;min-width:0}.financeiro-filtros>div{min-width:0}.financeiro-filtros input,.financeiro-filtros select{width:100%;box-sizing:border-box;min-width:0}.financeiro-filtros button{width:100%;min-height:42px;white-space:normal}.relatorio-btn{margin-left:auto}.relatorio-fechamento{border:1px solid #ddd;border-radius:12px;padding:14px;margin:15px 0;background:#fafafa}
+@media(max-width:1200px){.financeiro-valores{grid-template-columns:repeat(3,minmax(0,1fr))}.financeiro-filtros{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.lista-financeiro{grid-template-columns:1fr}.financeiro-resumo{grid-template-columns:repeat(2,minmax(0,1fr))}.financeiro-valores{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.financeiro-resumo{grid-template-columns:1fr}.financeiro-valores{grid-template-columns:1fr}.recebimento-form{grid-template-columns:1fr}.recebimento-form .campo-full{grid-column:auto}.financeiro-filtros{grid-template-columns:1fr}}
 @media(max-width:800px){
 .sidebar{position:relative;width:100%}.conteudo{margin-left:0;padding:15px}
 .grid-form{grid-template-columns:1fr}.grid-form .campo-full{grid-column:auto}
@@ -188,13 +193,9 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
 <button onclick="abrirPagina('inicio', this)" class="ativo">🏠 Início</button>
 <button onclick="abrirPagina('rodeios', this)">🏇 Rodeios</button>
 <button onclick="abrirPagina('contratos', this)">📄 Contratos</button>
-<button onclick="abrirPagina('lacadores', this)">🤠 Laçadores</button>
-<button onclick="abrirPagina('inscricoes', this)">📋 Inscrições</button>
 <button onclick="abrirPagina('financeiro', this)">💰 Financeiro</button>
 <button onclick="abrirPagina('comissoes', this)">🤝 Comissões</button>
 <button onclick="abrirPagina('parceiros', this)">👥 Parceiros</button>
-<button onclick="abrirPagina('premiacoes', this)">🏆 Premiações</button>
-<button onclick="abrirPagina('relatorios', this)">📊 Relatórios</button>
 <button onclick="abrirPagina('agenda', this)">📅 Agenda</button>
 <button onclick="abrirPagina('configuracoes', this)">⚙️ Configurações</button>
 <button class="btn-sair" onclick="sairSistema()">🚪 Sair</button>
