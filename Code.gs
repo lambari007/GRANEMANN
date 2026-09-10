@@ -15,7 +15,7 @@ const ID_PLANILHA = '1qlcBUZV9zBK8e1OvcxG8N7y-PVL7FwiPPML3T84liCc';
 // =====================================================
 // Perfis aceitos na coluna E da aba USUARIOS:
 // ADMINISTRADOR (ou ADMIN) = acesso completo
-// VISUALIZADOR = somente Início, Rodeios e Contratos
+// VISUALIZADOR = Início, Rodeios, Contratos e Comissões
 
 function criarSessaoAPI(id, usuario, nivel, nome) {
   const token = Utilities.getUuid();
@@ -39,7 +39,7 @@ function perfilEhAdmin(nivel) {
 function acaoPermitidaPorPerfil(acao, nivel) {
   if (perfilEhAdmin(nivel)) return true;
 
-  // O perfil VISUALIZADOR pode consultar e preencher somente Rodeios e Contratos.
+  // O perfil VISUALIZADOR pode consultar e preencher Rodeios, Contratos e Comissões.
   const permitidasVisualizador = [
     'listarrodeios',
     'cadastrarrodeio',
@@ -50,8 +50,10 @@ function acaoPermitidaPorPerfil(acao, nivel) {
     'listarcontratospendentes',
     'cadastrarcontrato',
     'editarcontrato',
-    // Necessário para o Visualizador poder selecionar parceiros dentro de Rodeios.
-    // Isso não libera a tela de cadastro de parceiros; libera apenas a consulta da lista.
+    'listarcomissoes',
+    'cadastrarcomissao',
+    'excluircomissao',
+    // Necessário para selecionar parceiros dentro de Rodeios e Comissões.
     'listarparceiros'
   ];
 
