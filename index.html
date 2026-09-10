@@ -1338,7 +1338,9 @@ document.getElementById('formContrato').addEventListener('submit',async function
 
 
 let comissoesCache=[];
-async function carregarComissoes(forcar=false){const l=document.getElementById('listaComissoes');if(!l)return;if(!forcar&&comissoesCache.length){preencherOpcoesComissao();renderizarComissoes();return;}try{l.innerHTML='<p class="contratos-vazio">Carregando comissões...</p>';if(!rodeiosCache.length)await carregarRodeios();if(!parceirosCache.length)await carregarParceiros();const r=await chamarAPI('listarcomissoes');if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');comissoesCache=r.dados||[];preencherOpcoesComissao();renderizarComissoes();}catch(e){console.error(e);l.innerHTML='<p class="erro">Não foi possível carregar as comissões.</p>';}}
+let carregandoComissoes=false;
+let assinaturaComissoes='';
+async function carregarComissoes(forcar=false, silenciosa=false){const l=document.getElementById('listaComissoes');if(!l)return;if(carregandoComissoes)return;if(!forcar&&comissoesCache.length){preencherOpcoesComissao();renderizarComissoes();return;}carregandoComissoes=true;try{if(!silenciosa)l.innerHTML='<p class="contratos-vazio">Carregando comissões...</p>';if(!rodeiosCache.length)await carregarRodeios();if(!parceirosCache.length)await carregarParceiros();const r=await chamarAPI('listarcomissoes');if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');const novos=r.dados||[];const novaAssinatura=JSON.stringify(novos);if(!silenciosa||novaAssinatura!==assinaturaComissoes){comissoesCache=novos;assinaturaComissoes=novaAssinatura;preencherOpcoesComissao();renderizarComissoes();}}catch(e){console.error(e);if(!silenciosa)l.innerHTML='<p class="erro">Não foi possível carregar as comissões.</p>';}finally{carregandoComissoes=false;}}
 function preencherOpcoesComissao(){const sr=document.getElementById('comissaoRodeio'),sp=document.getElementById('comissaoParceiro');if(!sr||!sp)return;const ar=sr.value,ap=sp.value;sr.innerHTML='<option value="">Selecione o rodeio</option>'+rodeiosCache.map(r=>'<option value="'+escaparHTML(r.id)+'">'+escaparHTML(r.nomeEvento||('Rodeio #'+r.id))+' — '+escaparHTML(r.cidade||'')+'</option>').join('');const ps=(parceirosCache||[]).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));sp.innerHTML='<option value="">Selecione o parceiro</option>'+ps.map(p=>'<option value="'+escaparHTML(p.nome)+'">'+escaparHTML(p.nome)+'</option>').join('');if(ar)sr.value=ar;if(ap)sp.value=ap;}
 async function carregarParceiros(){try{const r=await chamarAPI('listarparceiros');if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');parceirosCache=r.dados||[];preencherParceirosRodeio();if(document.getElementById('comissaoParceiro'))preencherOpcoesComissao();preencherFiltroRelatorioComissoes();renderizarParceiros();}catch(e){console.error(e);}}
 function preencherParceirosRodeio(){const s=document.getElementById('parceiroRodeio');if(!s)return;const atual=document.getElementById('parceiroIdRodeio')?.value||s.value;s.innerHTML='<option value="">Selecione o parceiro</option>'+parceirosCache.map(p=>'<option value="'+escaparHTML(p.id)+'">'+escaparHTML(p.nome)+'</option>').join('');if(atual)s.value=atual;}
@@ -1395,9 +1397,9 @@ async function sincronizarComissoesAutomaticamente(){
   const pagina=document.getElementById('pagina-comissoes');
   if(!pagina || !pagina.classList.contains('ativa')) return;
   const usuario = sessionStorage.getItem('usuario');
-  if(!usuario) return;
+  if(!usuario || carregandoComissoes) return;
   try{
-    await carregarComissoes(true);
+    await carregarComissoes(true, true);
     ultimaSincronizacaoComissoes = Date.now();
   }catch(e){ console.warn('Sincronização automática de comissões:', e); }
 }
