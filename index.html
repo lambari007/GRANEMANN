@@ -512,34 +512,17 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
 <section id="pagina-comissoes" class="pagina">
   <div class="card">
     <h2>🤝 Comissões</h2>
-    <p style="color:#666;margin:-10px 0 18px">Defina o tratamento de comissão de cada rodeio. Se houver comissão, vincule o parceiro e o valor. Se não houver, marque sem comissionamento e registre a justificativa.</p>
+    <p style="color:#666;margin:-10px 0 18px">Vincule o rodeio ao parceiro, informe a comissão e explique o motivo. A comissão pode ser descontada do valor a receber no Financeiro. A chave no Financeiro informa se ela foi descontada ou se ficou a pagar ao parceiro.</p>
     <form id="formComissao"><input type="hidden" id="comissaoId"><div class="grid-form">
       <div class="campo campo-full"><label>Rodeio</label><select id="comissaoRodeio" required><option value="">Selecione o rodeio</option></select></div>
       <div class="campo"><label>Situação</label><select id="comissaoSituacao" required><option value="COM_COMISSAO">🤝 Com comissão</option><option value="SEM_COMISSIONAMENTO">🚫 Sem comissionamento</option></select></div>
-      <div class="campo" id="campoComissaoParceiro"><label>Parceiro</label><select id="comissaoParceiro"><option value="">Selecione o parceiro</option></select></div>
-      <div class="campo" id="campoComissaoValor"><label>Valor da comissão (R$)</label><input id="comissaoValor" type="number" min="0" step="0.01"></div>
-      <div class="campo campo-full"><label id="labelComissaoObservacoes">Observação / motivo</label><textarea id="comissaoObservacoes" rows="3" placeholder="Ex.: Comissão referente à indicação e fechamento deste rodeio."></textarea></div>
-    </div><div class="acoes"><button type="submit" id="btnSalvarComissao">💾 SALVAR</button><button type="button" class="btn-secundario" onclick="limparFormularioComissao()">LIMPAR</button></div><div id="mensagemComissao" style="margin-top:15px;font-weight:bold"></div></form>
+      <div class="campo"><label>Parceiro</label><select id="comissaoParceiro"><option value="">Selecione o parceiro</option></select></div>
+      <div class="campo"><label>Valor da comissão (R$)</label><input id="comissaoValor" type="number" min="0" step="0.01"></div>
+      <div class="campo campo-full"><label id="labelObservacaoComissao">Observação / motivo</label><textarea id="comissaoObservacoes" rows="3" placeholder="Ex.: Comissão referente à indicação e fechamento deste rodeio."></textarea></div>
+    </div><div class="acoes"><button type="submit">💾 SALVAR COMISSÃO</button><button type="button" class="btn-secundario" onclick="limparFormularioComissao()">LIMPAR</button></div><div id="mensagemComissao" style="margin-top:15px;font-weight:bold"></div></form>
   </div>
-
   <div class="card">
-    <h3>🔎 Controle de comissionamento</h3>
-    <p style="color:#666;margin:-10px 0 18px">Aqui aparecem <strong>todos os rodeios</strong>. Assim você identifica rapidamente o que já foi definido, o que está sem comissão e o que ainda precisa ser analisado.</p>
-    <div id="resumoControleComissoes" class="resumo-grid" style="margin-bottom:18px">
-      <div class="resumo-card c1"><span id="controleTotal" class="resumo-numero">0</span><span class="resumo-label">🏇 Rodeios</span></div>
-      <div class="resumo-card c3"><span id="controleComComissao" class="resumo-numero">0</span><span class="resumo-label">🤝 Com comissão</span></div>
-      <div class="resumo-card c4"><span id="controleSemComissao" class="resumo-numero">0</span><span class="resumo-label">🚫 Sem comissão</span></div>
-      <div class="resumo-card c5"><span id="controlePendente" class="resumo-numero">0</span><span class="resumo-label">⚠️ Pendente de definição</span></div>
-    </div>
-    <div class="grid-form">
-      <div class="campo"><label>Filtrar situação</label><select id="filtroControleComissoes"><option value="TODOS">Todos</option><option value="COM_COMISSAO">Com comissão</option><option value="SEM_COMISSIONAMENTO">Sem comissionamento</option><option value="PENDENTE">Pendente de definição</option></select></div>
-      <div class="campo campo-full"><label>Buscar rodeio</label><input id="buscaControleComissoes" type="text" placeholder="Nome, cidade ou parceiro"></div>
-    </div>
-    <div id="listaControleComissoes" class="lista-contratos"><p class="contratos-vazio">Carregando controle...</p></div>
-  </div>
-
-  <div class="card">
-    <h3>📋 Comissões definidas</h3>
+    <h3>📋 Comissões cadastradas</h3>
     <div id="listaComissoes" class="lista-contratos"><p class="contratos-vazio">Carregando comissões...</p></div>
   </div>
   <div class="card">
@@ -737,7 +720,7 @@ document.getElementById('tituloPagina').textContent=titulos[nome]||nome;
 if(nome==='rodeios'){configurarFiltros();if(rodeiosCache.length)aplicarFiltrosRodeios();else carregarRodeios();}
 if(nome==='contratos'){carregarContratos(false);}
 if(nome==='financeiro'){carregarFinanceiro(false);}
-if(nome==='comissoes'){carregarComissoes();carregarControleComissoes();preencherFiltroRelatorioComissoes();}
+if(nome==='comissoes'){carregarComissoes();preencherFiltroRelatorioComissoes();}
 if(nome==='parceiros'){carregarParceiros();}
 
 }
@@ -1345,40 +1328,8 @@ document.getElementById('formContrato').addEventListener('submit',async function
 
 
 let comissoesCache=[];
-let controleComissoesCache=[];
-async function carregarComissoes(forcar=false){
-  const l=document.getElementById('listaComissoes');if(!l)return;
-  if(!forcar&&comissoesCache.length){preencherOpcoesComissao();renderizarComissoes();return;}
-  try{
-    l.innerHTML='<p class="contratos-vazio">Carregando comissões...</p>';
-    if(!rodeiosCache.length)await carregarRodeios();
-    if(!parceirosCache.length)await carregarParceiros();
-    const r=await chamarAPI('listarcomissoes');
-    if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');
-    comissoesCache=r.dados||[];
-    preencherOpcoesComissao();renderizarComissoes();
-  }catch(e){console.error(e);l.innerHTML='<p class="erro">Não foi possível carregar as comissões.</p>';}
-}
-function preencherOpcoesComissao(){
-  const sr=document.getElementById('comissaoRodeio'),sp=document.getElementById('comissaoParceiro');if(!sr||!sp)return;
-  const ar=sr.value,ap=sp.value;
-  sr.innerHTML='<option value="">Selecione o rodeio</option>'+rodeiosCache.map(r=>'<option value="'+escaparHTML(r.id)+'">'+escaparHTML(r.nomeEvento||('Rodeio #'+r.id))+' — '+escaparHTML(r.cidade||'')+'</option>').join('');
-  const ps=(parceirosCache||[]).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));
-  sp.innerHTML='<option value="">Selecione o parceiro</option>'+ps.map(p=>'<option value="'+escaparHTML(p.nome)+'">'+escaparHTML(p.nome)+'</option>').join('');
-  if(ar)sr.value=ar;if(ap)sp.value=ap;
-}
-function atualizarCamposComissao(){
-  const situacao=document.getElementById('comissaoSituacao')?.value||'COM_COMISSAO';
-  const sem=situacao==='SEM_COMISSIONAMENTO';
-  const cp=document.getElementById('campoComissaoParceiro'),cv=document.getElementById('campoComissaoValor'),sp=document.getElementById('comissaoParceiro'),iv=document.getElementById('comissaoValor'),obs=document.getElementById('comissaoObservacoes'),lab=document.getElementById('labelComissaoObservacoes');
-  if(cp)cp.style.display=sem?'none':'block';if(cv)cv.style.display=sem?'none':'block';
-  if(sp)sp.required=!sem;if(iv)iv.required=!sem;if(obs)obs.required=sem;
-  if(sem){if(sp)sp.value='';if(iv)iv.value='0';if(lab)lab.textContent='Justificativa (obrigatória)';if(obs)obs.placeholder='Ex.: Rodeio fechado diretamente com o cliente, sem indicação ou parceiro comissionado.';}
-  else{if(iv&&iv.value==='0')iv.value='';if(lab)lab.textContent='Observação / motivo';if(obs)obs.placeholder='Ex.: Comissão referente à indicação e fechamento deste rodeio.';}
-}
-document.getElementById('comissaoSituacao')?.addEventListener('change',atualizarCamposComissao);
-atualizarCamposComissao();
-
+async function carregarComissoes(forcar=false){const l=document.getElementById('listaComissoes');if(!l)return;if(!forcar&&comissoesCache.length){preencherOpcoesComissao();renderizarComissoes();return;}try{l.innerHTML='<p class="contratos-vazio">Carregando comissões...</p>';if(!rodeiosCache.length)await carregarRodeios();if(!parceirosCache.length)await carregarParceiros();const r=await chamarAPI('listarcomissoes');if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');comissoesCache=r.dados||[];preencherOpcoesComissao();renderizarComissoes();}catch(e){console.error(e);l.innerHTML='<p class="erro">Não foi possível carregar as comissões.</p>';}}
+function preencherOpcoesComissao(){const sr=document.getElementById('comissaoRodeio'),sp=document.getElementById('comissaoParceiro');if(!sr||!sp)return;const ar=sr.value,ap=sp.value;sr.innerHTML='<option value="">Selecione o rodeio</option>'+rodeiosCache.map(r=>'<option value="'+escaparHTML(r.id)+'">'+escaparHTML(r.nomeEvento||('Rodeio #'+r.id))+' — '+escaparHTML(r.cidade||'')+'</option>').join('');const ps=(parceirosCache||[]).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));sp.innerHTML='<option value="">Selecione o parceiro</option>'+ps.map(p=>'<option value="'+escaparHTML(p.nome)+'">'+escaparHTML(p.nome)+'</option>').join('');if(ar)sr.value=ar;if(ap)sp.value=ap;}
 async function carregarParceiros(){try{const r=await chamarAPI('listarparceiros');if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');parceirosCache=r.dados||[];preencherParceirosRodeio();if(document.getElementById('comissaoParceiro'))preencherOpcoesComissao();preencherFiltroRelatorioComissoes();renderizarParceiros();}catch(e){console.error(e);}}
 function preencherParceirosRodeio(){const s=document.getElementById('parceiroRodeio');if(!s)return;const atual=document.getElementById('parceiroIdRodeio')?.value||s.value;s.innerHTML='<option value="">Selecione o parceiro</option>'+parceirosCache.map(p=>'<option value="'+escaparHTML(p.id)+'">'+escaparHTML(p.nome)+'</option>').join('');if(atual)s.value=atual;}
 function atualizarCampoParceiroRodeio(){const tipo=(document.querySelector('input[name="tipoContato"]:checked')||{}).value||'Organizador';const input=document.getElementById('organizador'),sel=document.getElementById('parceiroRodeio');if(!input||!sel)return;if(tipo==='Parceiro'){input.style.display='none';input.required=false;sel.style.display='block';sel.required=true;const p=parceirosCache.find(x=>String(x.id)===String(sel.value));if(p)input.value=p.nome;}else{input.style.display='block';input.required=true;sel.style.display='none';sel.required=false;}}
@@ -1389,108 +1340,14 @@ function renderizarParceiros(){const l=document.getElementById('listaParceiros')
 async function excluirParceiroUI(id){if(!confirm('Excluir este parceiro?'))return;const r=await chamarAPI('excluirparceiro',{id});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível excluir.');return;}await carregarParceiros();if(document.getElementById('comissaoParceiro'))preencherOpcoesComissao();}
 document.getElementById('formParceiro')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemParceiro');m.textContent='Salvando parceiro...';const r=await chamarAPI('cadastrarparceiro',{id:document.getElementById('parceiroCadastroId').value,nome:document.getElementById('parceiroNome').value,telefone:document.getElementById('parceiroTelefone').value,documento:document.getElementById('parceiroDocumento').value,observacoes:document.getElementById('parceiroObservacoes').value});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioParceiro();await carregarParceiros();});
 
-function limparFormularioComissao(){
-  document.getElementById('formComissao')?.reset();
-  document.getElementById('comissaoId').value='';
-  document.getElementById('comissaoSituacao').value='COM_COMISSAO';
-  document.getElementById('mensagemComissao').textContent='';
-  atualizarCamposComissao();
-}
-function renderizarComissoes(){
-  const l=document.getElementById('listaComissoes');if(!l)return;
-  if(!comissoesCache.length){l.innerHTML='<p class="contratos-vazio">Nenhuma comissão definida.</p>';return;}
-  l.innerHTML=comissoesCache.map(c=>{
-    if(c.situacaoComissao==='SEM_COMISSIONAMENTO'){
-      return '<div class="contrato-card" style="border-left:5px solid #777"><h3>'+escaparHTML(c.nomeRodeio||'Rodeio')+'</h3><div class="info"><strong>Situação:</strong> <span style="font-weight:bold;color:#666">🚫 SEM COMISSIONAMENTO</span><br><strong>Justificativa:</strong> '+escaparHTML(c.observacoes||'-')+'</div><div class="rodeio-acoes"><button onclick="editarComissao('+c.id+')">✏️ Editar</button><button class="btn-perigo" onclick="excluirComissaoUI('+c.id+')">🗑️ Excluir</button></div></div>';
-    }
-    const sit=c.comissaoDescontada===true?'DESCONTADA DO FATURAMENTO':c.comissaoDescontada===false?'A PAGAR AO PARCEIRO':'SEM FINANCEIRO — CONFERIR';
-    const cls=c.comissaoDescontada===true?'color:#176b2c':c.comissaoDescontada===false?'color:#a33b00':'color:#666';
-    return '<div class="contrato-card"><h3>'+escaparHTML(c.nomeRodeio||'Rodeio')+'</h3><div class="info"><strong>Parceiro:</strong> '+escaparHTML(c.parceiro||'-')+'<br><strong>Comissão:</strong> '+formatarMoedaFinanceiro(c.valor)+'<br><strong>Situação financeira:</strong> <span style="font-weight:bold;'+cls+'">'+sit+'</span><br><strong>Motivo:</strong> '+escaparHTML(c.observacoes||'-')+'</div><div class="rodeio-acoes"><button onclick="editarComissao('+c.id+')">✏️ Editar</button><button class="btn-perigo" onclick="excluirComissaoUI('+c.id+')">🗑️ Excluir</button></div></div>';
-  }).join('');
-}
-function editarComissao(id){
-  const c=comissoesCache.find(x=>String(x.id)===String(id));if(!c)return;
-  document.getElementById('comissaoId').value=c.id;
-  document.getElementById('comissaoRodeio').value=c.idRodeio;
-  document.getElementById('comissaoSituacao').value=c.situacaoComissao||'COM_COMISSAO';
-  document.getElementById('comissaoParceiro').value=c.parceiro||'';
-  document.getElementById('comissaoValor').value=c.situacaoComissao==='SEM_COMISSIONAMENTO'?0:c.valor;
-  document.getElementById('comissaoObservacoes').value=c.observacoes||'';
-  atualizarCamposComissao();window.scrollTo({top:0,behavior:'smooth'});
-}
-async function excluirComissaoUI(id){
-  if(!confirm('Excluir esta definição de comissão? O rodeio voltará para PENDENTE DE DEFINIÇÃO.'))return;
-  const r=await chamarAPI('excluircomissao',{id});
-  if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível excluir.');return;}
-  comissoesCache=comissoesCache.filter(c=>String(c.id)!==String(id));
-  renderizarComissoes();
-  carregarControleComissoes(true);
-  carregarFinanceiro(true);
-}
-document.getElementById('formComissao')?.addEventListener('submit',async e=>{
-  e.preventDefault();
-  const m=document.getElementById('mensagemComissao'),btn=document.getElementById('btnSalvarComissao');
-  if(btn&&btn.disabled)return;
-  if(btn)btn.disabled=true;
-  m.className='';m.textContent='Salvando...';
-  try{
-    const r=await chamarAPI('cadastrarcomissao',{
-      id:document.getElementById('comissaoId').value,
-      idRodeio:document.getElementById('comissaoRodeio').value,
-      situacaoComissao:document.getElementById('comissaoSituacao').value,
-      parceiro:document.getElementById('comissaoParceiro').value,
-      valor:document.getElementById('comissaoValor').value,
-      observacoes:document.getElementById('comissaoObservacoes').value
-    });
-    if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}
-    m.className='sucesso';m.textContent=r.mensagem;
-    limparFormularioComissao();
-    // Atualizações em segundo plano: o usuário não precisa esperar as listas recarregarem para continuar.
-    Promise.all([carregarComissoes(true),carregarControleComissoes(true),carregarFinanceiro(true)]).catch(console.error);
-  }catch(e){console.error(e);m.className='erro';m.textContent='Erro ao salvar a definição de comissão.';}
-  finally{if(btn)btn.disabled=false;}
-});
-
-async function carregarControleComissoes(forcar=false){
-  const l=document.getElementById('listaControleComissoes');if(!l)return;
-  if(!forcar&&controleComissoesCache.length){renderizarControleComissoes();return;}
-  try{
-    const r=await chamarAPI('listarcontrolecomissoes');
-    if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');
-    controleComissoesCache=r.dados||[];
-    renderizarControleComissoes();
-  }catch(e){console.error(e);l.innerHTML='<p class="erro">Não foi possível carregar o controle de comissionamento.</p>';}
-}
-function renderizarControleComissoes(){
-  const l=document.getElementById('listaControleComissoes');if(!l)return;
-  const busca=normalizarBusca(document.getElementById('buscaControleComissoes')?.value||'');
-  const filtro=document.getElementById('filtroControleComissoes')?.value||'TODOS';
-  const dados=controleComissoesCache.filter(r=>{
-    const texto=normalizarBusca([r.nomeRodeio,r.cidade,r.estado,r.parceiroRodeio,r.parceiroComissao].join(' '));
-    return (filtro==='TODOS'||r.situacaoComissao===filtro)&&(!busca||texto.includes(busca));
-  });
-  const total=controleComissoesCache.length, com=controleComissoesCache.filter(r=>r.situacaoComissao==='COM_COMISSAO').length, sem=controleComissoesCache.filter(r=>r.situacaoComissao==='SEM_COMISSIONAMENTO').length, pend=controleComissoesCache.filter(r=>r.situacaoComissao==='PENDENTE').length;
-  [['controleTotal',total],['controleComComissao',com],['controleSemComissao',sem],['controlePendente',pend]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=v;});
-  if(!dados.length){l.innerHTML='<p class="contratos-vazio">Nenhum rodeio encontrado neste filtro.</p>';return;}
-  l.innerHTML=dados.map(r=>{
-    const pend=r.situacaoComissao==='PENDENTE', sem=r.situacaoComissao==='SEM_COMISSIONAMENTO';
-    const titulo=pend?'⚠️ PENDENTE DE DEFINIÇÃO':sem?'🚫 SEM COMISSIONAMENTO':'🤝 COM COMISSÃO';
-    const cor=pend?'#a33b00':sem?'#666':'#176b2c';
-    const detalhe=pend?'Este rodeio ainda não foi definido. Clique em “Definir” para registrar comissão ou justificar que não há comissionamento.':sem?'Justificativa: '+escaparHTML(r.observacoes||'Não informada'):'Parceiro da comissão: '+escaparHTML(r.parceiroComissao||'-')+' • Comissão: '+formatarMoedaFinanceiro(r.valorComissao);
-    return '<div class="contrato-card" style="border-left:5px solid '+cor+'"><h3>'+escaparHTML(r.nomeRodeio||'Rodeio')+'</h3><div class="info"><strong>Situação:</strong> <span style="font-weight:bold;color:'+cor+'">'+titulo+'</span><br><strong>Data:</strong> '+escaparHTML((r.dataInicio||'-')+(r.dataFim?' a '+r.dataFim:''))+'<br><strong>Cidade:</strong> '+escaparHTML([r.cidade,r.estado].filter(Boolean).join(' - ')||'-')+(r.parceiroRodeio?'<br><strong>Parceiro no rodeio:</strong> '+escaparHTML(r.parceiroRodeio):'')+'<br>'+detalhe+'</div><div class="rodeio-acoes"><button onclick="definirComissaoParaRodeio('+r.id+')">✏️ '+(pend?'Definir':'Alterar')+'</button></div></div>';
-  }).join('');
-}
-function definirComissaoParaRodeio(id){
-  const r=controleComissoesCache.find(x=>String(x.id)===String(id));if(!r)return;
-  if(r.comissaoId){editarComissao(r.comissaoId);}
-  else{limparFormularioComissao();document.getElementById('comissaoRodeio').value=r.id;}
-  abrirPagina('comissoes');
-  atualizarCamposComissao();
-  document.getElementById('comissaoRodeio')?.focus();
-}
-['filtroControleComissoes','buscaControleComissoes'].forEach(function(id){
-  const el=document.getElementById(id);if(el&&!el.dataset.configurado){el.dataset.configurado='1';el.addEventListener(id==='buscaControleComissoes'?'input':'change',renderizarControleComissoes);}
-});
+function atualizarCamposComissao(){const sem=(document.getElementById('comissaoSituacao')?.value||'COM_COMISSAO')==='SEM_COMISSIONAMENTO';const p=document.getElementById('comissaoParceiro'),v=document.getElementById('comissaoValor'),o=document.getElementById('comissaoObservacoes'),lab=document.getElementById('labelObservacaoComissao');if(p){p.required=!sem;p.disabled=sem;if(sem)p.value='';}if(v){v.required=!sem;v.disabled=sem;if(sem)v.value='0';}if(o){o.required=sem;}if(lab)lab.textContent=sem?'Justificativa do sem comissionamento':'Observação / motivo';}
+function limparFormularioComissao(){document.getElementById('formComissao')?.reset();document.getElementById('comissaoId').value='';document.getElementById('mensagemComissao').textContent='';atualizarCamposComissao();}
+function renderizarComissoes(){const l=document.getElementById('listaComissoes');if(!l)return;if(!comissoesCache.length){l.innerHTML='<p class="contratos-vazio">Nenhum rodeio cadastrado.</p>';return;}l.innerHTML=comissoesCache.map(c=>{let sit,cls;if(c.situacao==='SEM_COMISSIONAMENTO'){sit='🚫 SEM COMISSIONAMENTO';cls='color:#666';}else if(c.situacao==='PENDENTE'){sit='⚠️ PENDENTE DE DEFINIÇÃO';cls='color:#a33b00';}else{sit=c.comissaoDescontada===true?'DESCONTADA DO FATURAMENTO':c.comissaoDescontada===false?'A PAGAR AO PARCEIRO':'SEM FINANCEIRO — CONFERIR';cls=c.comissaoDescontada===true?'color:#176b2c':c.comissaoDescontada===false?'color:#a33b00':'color:#666';}const btn=c.situacao==='PENDENTE'?'<button onclick="definirComissao('+JSON.stringify(String(c.idRodeio))+')">⚙️ Definir</button>':(c.id?'<button onclick="editarComissao('+c.id+')">✏️ Editar</button>':'');const del=c.id?'<button class="btn-perigo" onclick="excluirComissaoUI('+c.id+')">🗑️ Excluir</button>':'';return '<div class="contrato-card"><h3>'+escaparHTML(c.nomeRodeio||'Rodeio')+'</h3><div class="info"><strong>Parceiro:</strong> '+escaparHTML(c.parceiro||'-')+'<br><strong>Comissão:</strong> '+formatarMoedaFinanceiro(c.valor)+'<br><strong>Situação:</strong> <span style="font-weight:bold;'+cls+'">'+sit+'</span><br><strong>Motivo/justificativa:</strong> '+escaparHTML(c.observacoes||'-')+'</div><div class="rodeio-acoes">'+btn+del+'</div></div>';}).join('');}
+function definirComissao(idR){document.getElementById('comissaoId').value='';document.getElementById('comissaoRodeio').value=idR;document.getElementById('comissaoSituacao').value='COM_COMISSAO';document.getElementById('comissaoParceiro').value='';document.getElementById('comissaoValor').value='';document.getElementById('comissaoObservacoes').value='';atualizarCamposComissao();window.scrollTo({top:0,behavior:'smooth'});}
+function editarComissao(id){const c=comissoesCache.find(x=>String(x.id)===String(id));if(!c)return;document.getElementById('comissaoId').value=c.id;document.getElementById('comissaoRodeio').value=c.idRodeio;document.getElementById('comissaoSituacao').value=c.situacao==='SEM_COMISSIONAMENTO'?'SEM_COMISSIONAMENTO':'COM_COMISSAO';document.getElementById('comissaoParceiro').value=c.parceiro||'';document.getElementById('comissaoValor').value=c.situacao==='SEM_COMISSIONAMENTO'?0:(c.valor||'');document.getElementById('comissaoObservacoes').value=c.observacoes||'';atualizarCamposComissao();window.scrollTo({top:0,behavior:'smooth'});}
+async function excluirComissaoUI(id){if(!confirm('Excluir esta definição de comissão? O rodeio voltará para Pendente de definição.'))return;const r=await chamarAPI('excluircomissao',{id});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível excluir.');return;}await carregarComissoes(true);await carregarFinanceiro(true);}
+document.getElementById('comissaoSituacao')?.addEventListener('change',atualizarCamposComissao);
+document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemComissao');m.textContent='Salvando...';const r=await chamarAPI('cadastrarcomissao',{id:document.getElementById('comissaoId').value,idRodeio:document.getElementById('comissaoRodeio').value,situacao:document.getElementById('comissaoSituacao').value,parceiro:document.getElementById('comissaoParceiro').value,valor:document.getElementById('comissaoValor').value,observacoes:document.getElementById('comissaoObservacoes').value});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioComissao();await carregarComissoes(true);await carregarFinanceiro(true);});
 function preencherFiltroRelatorioComissoes(){const s=document.getElementById('relComissaoParceiro');if(!s)return;const atual=s.value;const ps=(parceirosCache||[]).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));s.innerHTML='<option value="">Todos os parceiros</option>'+ps.map(p=>'<option value="'+escaparHTML(p.nome)+'">'+escaparHTML(p.nome)+'</option>').join('');if(atual)s.value=atual;}
 function limparFiltrosRelatorioComissoes(){const s=document.getElementById('relComissaoParceiro');if(s)s.value='';const i=document.getElementById('relComissaoInicio');if(i)i.value='';const f=document.getElementById('relComissaoFim');if(f)f.value='';const st=document.getElementById('relComissaoStatus');if(st)st.value='TODAS';}
 function gerarRelatorioComissoes(){
