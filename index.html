@@ -649,7 +649,7 @@ document.getElementById('nomeUsuario').textContent=resultado.nome||resultado.usu
 aplicarPermissoesUsuario(resultado);
 configurarFiltros();
 configurarFiltrosFinanceiro();
-Promise.all([carregarRodeios(), carregarParceiros(), carregarContratos(), carregarFinanceiro(), carregarComissoes()]).catch(function(e){console.error(e);});
+Promise.all([carregarRodeios(), carregarParceiros(), carregarContratos(), carregarFinanceiro(), carregarComissoes()]).then(async function(){ try{ const vr=await chamarAPI('versao_comissoes'); if(vr&&vr.sucesso) ultimaVersaoComissoes=String(vr.versao||'0'); }catch(e){} }).catch(function(e){console.error(e);});
 
 },500);
 
@@ -1391,19 +1391,29 @@ function mostrarPendentesComissoes(){
 function editarComissao(id){definirComissao((comissoesCache.find(x=>String(x.id)===String(id))||{}).idRodeio);}
 async function excluirComissaoUI(id){if(!confirm('Excluir esta definição de comissão?'))return;const r=await chamarAPI('excluircomissao',{id});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível excluir.');return;}await carregarComissoes(true);}
 document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemComissao');const sit=document.getElementById('comissaoSituacao').value,p=document.getElementById('comissaoParceiro').value,v=document.getElementById('comissaoValor').value,o=document.getElementById('comissaoObservacoes').value;m.className='';m.textContent='Salvando definição...';const r=await chamarAPI('cadastrarcomissao',{id:document.getElementById('comissaoId').value,idRodeio:document.getElementById('comissaoRodeio').value,situacao:sit,parceiro:p,valor:v,observacoes:o});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioComissao();await carregarComissoes(true);});
-// Sincronização automática: usuários já logados recebem alterações de comissões sem precisar dar F5.
-let ultimaSincronizacaoComissoes = 0;
+// Sincronização leve: verifica apenas a versão no servidor.
+// A lista completa só é buscada quando realmente houve alteração.
+let ultimaVersaoComissoes = '';
+let sincronizacaoComissoesEmAndamento = false;
 async function sincronizarComissoesAutomaticamente(){
   const pagina=document.getElementById('pagina-comissoes');
-  if(!pagina || !pagina.classList.contains('ativa')) return;
-  const usuario = sessionStorage.getItem('usuario');
-  if(!usuario || carregandoComissoes) return;
+  if(!pagina || !pagina.classList.contains('ativa') || document.visibilityState !== 'visible') return;
+  if(sincronizacaoComissoesEmAndamento || carregandoComissoes) return;
+  sincronizacaoComissoesEmAndamento=true;
   try{
-    await carregarComissoes(true, true);
-    ultimaSincronizacaoComissoes = Date.now();
-  }catch(e){ console.warn('Sincronização automática de comissões:', e); }
+    const r=await chamarAPI('versao_comissoes');
+    if(r && r.sucesso){
+      const versao=String(r.versao||'0');
+      if(ultimaVersaoComissoes && versao!==ultimaVersaoComissoes){
+        await carregarComissoes(true,true);
+      }
+      ultimaVersaoComissoes=versao;
+    }
+  }catch(e){ console.warn('Sincronização de comissões:',e); }
+  finally{ sincronizacaoComissoesEmAndamento=false; }
 }
-setInterval(sincronizarComissoesAutomaticamente, 8000);
+// 20 segundos, sem limpar a tela e sem reconstruir a lista se nada mudou.
+setInterval(sincronizarComissoesAutomaticamente,20000);
 
 
 function preencherFiltroRelatorioComissoes(){const s=document.getElementById('relComissaoParceiro');if(!s)return;const atual=s.value;const ps=(parceirosCache||[]).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));s.innerHTML='<option value="">Todos os parceiros</option>'+ps.map(p=>'<option value="'+escaparHTML(p.nome)+'">'+escaparHTML(p.nome)+'</option>').join('');if(atual)s.value=atual;}
@@ -1940,7 +1950,7 @@ aplicarPermissoesUsuario(usuario);
 
 configurarFiltros();
 configurarFiltrosFinanceiro();
-Promise.all([carregarRodeios(), carregarParceiros(), carregarContratos(), carregarFinanceiro(), carregarComissoes()]).catch(function(e){console.error(e);});
+Promise.all([carregarRodeios(), carregarParceiros(), carregarContratos(), carregarFinanceiro(), carregarComissoes()]).then(async function(){ try{ const vr=await chamarAPI('versao_comissoes'); if(vr&&vr.sucesso) ultimaVersaoComissoes=String(vr.versao||'0'); }catch(e){} }).catch(function(e){console.error(e);});
 
 }catch(erro){
 
