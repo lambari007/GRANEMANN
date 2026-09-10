@@ -27,7 +27,7 @@ button:disabled{opacity:.6;cursor:not-allowed}
 #sistema{display:none;min-height:100vh}
 .sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:#111;color:white;padding:25px 15px;overflow-y:auto}
 .sidebar-logo{text-align:center;padding-bottom:25px;border-bottom:1px solid #333;margin-bottom:20px}
-.sidebar-logo div{font-size:38px}.sidebar-logo h2{font-size:17px;margin-top:8px}
+.sidebar-logo img{width:105px;height:105px;object-fit:contain;display:block;margin:0 auto 8px}.sidebar-logo h2{font-size:17px;margin-top:8px}
 .menu button{width:100%;text-align:left;margin-bottom:7px;background:transparent;color:#ddd;font-size:15px}
 .menu button:hover,.menu button.ativo{background:#333;color:white}
 .btn-sair{margin-top:25px;background:#8b0000!important}
@@ -173,7 +173,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
 
 <div id="telaLogin">
 <div class="login-box">
-<div class="logo">🏇</div>
+<div class="logo"><img src="logo_oficial_granemann.png?v=20260910" alt="Secretaria Granemann"></div>
 <h1>SECRETARIA GRANEMANN</h1>
 <div class="subtitulo">Sistema de Gestão de Rodeios</div>
 <form id="formLogin">
@@ -188,7 +188,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
 <div id="sistema">
 
 <aside class="sidebar">
-<div class="sidebar-logo"><div>🏇</div><h2>SECRETARIA<br>GRANEMANN</h2></div>
+<div class="sidebar-logo"><img src="logo_oficial_granemann.png?v=20260910" alt="Secretaria Granemann"><h2>SECRETARIA<br>GRANEMANN</h2></div>
 <div class="menu">
 <button onclick="abrirPagina('inicio', this)" class="ativo">🏠 Início</button>
 <button onclick="abrirPagina('rodeios', this)">🏇 Rodeios</button>
