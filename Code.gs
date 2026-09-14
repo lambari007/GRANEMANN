@@ -1215,27 +1215,10 @@ function marcarVersaoComissoes_(){
 function listarComissoes(){
   try{
     const a=obterAbaComissoes_(),v=a.getDataRange().getValues(),rs=listarRodeios().dados||[],map={};rs.forEach(r=>map[String(r.id)]=r);
-    // Vincula cada comissão ao lançamento financeiro do respectivo rodeio.
-    // O relatório precisa saber se a comissão foi realmente descontada do faturamento
-    // ou se continua como valor a pagar ao parceiro.
-    const finMap={};
-    try{
-      const af=obterAbaFinanceiro_(),vf=af.getDataRange().getValues();
-      for(let i=1;i<vf.length;i++){
-        const idR=String(vf[i][2]||'').trim();
-        if(idR){
-          finMap[idR]={
-            comissaoDescontada:(vf[i][7]===true||String(vf[i][7]).toUpperCase()==='TRUE'||String(vf[i][7]).toUpperCase()==='SIM'),
-            faturamento:numeroFinanceiro_(vf[i][5]),
-            idFinanceiro:vf[i][0]
-          };
-        }
-      }
-    }catch(e){}
     const d=[];
-    for(let i=1;i<v.length;i++){if(!v[i][0])continue; const idR=String(v[i][1]||''),r=map[idR]||{},fin=finMap[idR];
+    for(let i=1;i<v.length;i++){if(!v[i][0])continue; const idR=String(v[i][1]||''),r=map[idR]||{};
       const paga=v[i][7]===true||String(v[i][7]).toUpperCase()==='TRUE'||String(v[i][7]).toUpperCase()==='SIM';
-      d.push({id:v[i][0],idRodeio:v[i][1]||'',nomeRodeio:v[i][2]||r.nomeEvento||'',parceiro:v[i][3]||'',valor:numeroFinanceiro_(v[i][4]),observacoes:v[i][5]||'',situacao:String(v[i][6]||'COM_COMISSAO').trim().toUpperCase(),paga:paga,dataPagamento:v[i][8]?formatarDataPagamento_(v[i][8]):'',formaPagamento:v[i][9]||'',obsPagamento:v[i][10]||'',dataCadastro:formatarDataHora(v[i][11]),dataInicio:r.dataInicio||'',dataFim:r.dataFim||'',cidade:r.cidade||'',estado:r.estado||'',comissaoDescontada:fin?fin.comissaoDescontada:null,idFinanceiro:fin?fin.idFinanceiro:''});
+      const fin=listarFinanceiro().dados||[]; const finR=fin.find(f=>String(f.idRodeio)===idR); const comissaoDescontada=finR?!!finR.comissaoDescontada:null; d.push({id:v[i][0],idRodeio:v[i][1]||'',nomeRodeio:v[i][2]||r.nomeEvento||'',parceiro:v[i][3]||'',valor:numeroFinanceiro_(v[i][4]),observacoes:v[i][5]||'',situacao:String(v[i][6]||'COM_COMISSAO').trim().toUpperCase(),paga:paga,dataPagamento:v[i][8]?formatarDataPagamento_(v[i][8]):'',formaPagamento:v[i][9]||'',obsPagamento:v[i][10]||'',comissaoDescontada:comissaoDescontada,dataCadastro:formatarDataHora(v[i][11]),dataInicio:r.dataInicio||'',dataFim:r.dataFim||'',cidade:r.cidade||'',estado:r.estado||''});
     } return{sucesso:true,dados:d};
   }catch(e){return{sucesso:false,mensagem:'Erro ao listar comissões: '+e.message,dados:[]};}
 }

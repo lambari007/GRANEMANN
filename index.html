@@ -1467,16 +1467,18 @@ function gerarRelatorioComissoes(){
     const p=!parceiro||String(c.parceiro)===parceiro;
     const d=formatarDataISOFinanceiro(c.dataInicio||'');
     const periodo=(!inicio||!d||d>=inicio)&&(!fim||!d||d<=fim);
-    const st=status==='TODAS'||(status==='DESCONTADAS'&&c.comissaoDescontada===true)||(status==='APAGAR'&&c.comissaoDescontada===false);
+    const st=status==='TODAS'||(status==='DESCONTADAS'&&c.comissaoDescontada===true)||(status==='APAGAR'&&c.paga!==true);
     return p&&periodo&&st;
   }).sort((a,b)=>String(a.dataInicio||'').localeCompare(String(b.dataInicio||'')));
   if(!dados.length){alert('Nenhuma comissão encontrada para os filtros selecionados.');return;}
 
   const descontadas=dados.filter(c=>c.comissaoDescontada===true);
-  const aPagar=dados.filter(c=>c.comissaoDescontada===false);
+  const pagas=dados.filter(c=>c.paga===true);
+  const aPagar=dados.filter(c=>c.paga!==true);
   const semFinanceiro=dados.filter(c=>c.comissaoDescontada===null);
   const total=dados.reduce((a,c)=>a+(Number(c.valor)||0),0);
   const totalDescontadas=descontadas.reduce((a,c)=>a+(Number(c.valor)||0),0);
+  const totalPagas=pagas.reduce((a,c)=>a+(Number(c.valor)||0),0);
   const totalAPagar=aPagar.reduce((a,c)=>a+(Number(c.valor)||0),0);
   const totalSemFinanceiro=semFinanceiro.reduce((a,c)=>a+(Number(c.valor)||0),0);
 
@@ -1484,30 +1486,29 @@ function gerarRelatorioComissoes(){
   if(!janela){alert('O navegador bloqueou o relatório. Permita pop-ups para este sistema.');return;}
   const periodo=(inicio||fim)?((inicio?formatarDataRelatorioFinanceiro(inicio):'Início aberto')+' a '+(fim?formatarDataRelatorioFinanceiro(fim):'Fim aberto')):'Todos os períodos';
   const filtroStatus=status==='TODAS'?'Todas as situações':status==='DESCONTADAS'?'Somente descontadas':'Somente a pagar';
-  janela.document.write('<html><head><title>Relatório de Comissões</title><style>body{font-family:Arial,sans-serif;color:#222;padding:30px;max-width:1150px;margin:auto}h1{margin-bottom:4px}h2{margin-top:28px;border-bottom:2px solid #222;padding-bottom:7px}.sub{color:#666;margin-bottom:20px}.resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.box{border:1px solid #ccc;border-radius:8px;padding:12px}.box b{display:block;font-size:18px;margin-top:5px}.box.destaque{border-width:2px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px;vertical-align:top}th{background:#f2f2f2}.right{text-align:right}.status{font-weight:bold}.descontada{color:#176b2c}.pagar{color:#a33b00}.sem{color:#666}.rodape{margin-top:28px;font-size:11px;color:#777}@media print{body{padding:10px}.no-print{display:none}.resumo{grid-template-columns:repeat(4,1fr)}}</style></head><body>');
+  janela.document.write('<html><head><title>Relatório de Comissões</title><style>body{font-family:Arial,sans-serif;color:#222;padding:30px;max-width:1150px;margin:auto}h1{margin-bottom:4px}h2{margin-top:28px;border-bottom:2px solid #222;padding-bottom:7px}.sub{color:#666;margin-bottom:20px}.resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.box{border:1px solid #ccc;border-radius:8px;padding:12px}.box b{display:block;font-size:18px;margin-top:5px}.box.destaque{border-width:2px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px;vertical-align:top}th{background:#f2f2f2}.right{text-align:right}.status{font-weight:bold}.descontada{color:#176b2c}.paga{color:#176b2c}.pagar{color:#a33b00}.sem{color:#666}.rodape{margin-top:28px;font-size:11px;color:#777}@media print{body{padding:10px}.no-print{display:none}.resumo{grid-template-columns:repeat(4,1fr)}}</style></head><body>');
   janela.document.write('<button class="no-print" onclick="window.print()" style="padding:10px 16px;margin-bottom:15px">🖨️ Imprimir / Salvar PDF</button><h1>RELATÓRIO DE COMISSÕES</h1><div class="sub">Secretaria Granemann • Parceiro: '+escaparHTML(parceiro||'Todos')+' • Período: '+escaparHTML(periodo)+' • Filtro: '+escaparHTML(filtroStatus)+' • Gerado em '+new Date().toLocaleString('pt-BR')+'</div>');
-  janela.document.write('<div class="resumo"><div class="box">Total de comissões<b>'+formatarMoedaFinanceiro(total)+'</b></div><div class="box">Já descontadas<b class="descontada">'+formatarMoedaFinanceiro(totalDescontadas)+'</b></div><div class="box destaque">A pagar ao parceiro<b class="pagar">'+formatarMoedaFinanceiro(totalAPagar)+'</b></div><div class="box">Sem financeiro<b class="sem">'+formatarMoedaFinanceiro(totalSemFinanceiro)+'</b></div></div>');
+  janela.document.write('<div class="resumo"><div class="box">Total de comissões<b>'+formatarMoedaFinanceiro(total)+'</b></div><div class="box">Descontadas do faturamento<b class="descontada">'+formatarMoedaFinanceiro(totalDescontadas)+'</b></div><div class="box">Pagas ao parceiro<b class="paga">'+formatarMoedaFinanceiro(totalPagas)+'</b></div><div class="box destaque">A pagar ao parceiro<b class="pagar">'+formatarMoedaFinanceiro(totalAPagar)+'</b></div></div>');
 
-  function tabela(titulo,lista,totalSecao,classe){
+  function tabela(titulo,lista,totalSecao,classe,mostrarPagamento){
     janela.document.write('<h2>'+titulo+' — '+formatarMoedaFinanceiro(totalSecao)+'</h2>');
     if(!lista.length){janela.document.write('<p>Nenhuma comissão nesta situação.</p>');return;}
-    janela.document.write('<table><tr><th>Data</th><th>Rodeio</th><th>Cidade</th><th>Parceiro</th><th>Motivo / observação</th><th>Situação</th><th class="right">Comissão</th></tr>');
+    janela.document.write('<table><tr><th>Data</th><th>Rodeio</th><th>Cidade</th><th>Parceiro</th><th>Motivo / observação</th><th>Situação</th>'+ (mostrarPagamento?'<th>Pagamento</th>':'') +'<th class="right">Comissão</th></tr>');
     lista.forEach(c=>{
-      const sit=c.comissaoDescontada===true?'DESCONTADA DO FATURAMENTO':c.comissaoDescontada===false?'A PAGAR AO PARCEIRO':'SEM FINANCEIRO';
-      janela.document.write('<tr><td>'+escaparHTML(c.dataInicio||'-')+'</td><td>'+escaparHTML(c.nomeRodeio||'-')+'</td><td>'+escaparHTML([c.cidade,c.estado].filter(Boolean).join('/ ')||'-')+'</td><td>'+escaparHTML(c.parceiro||'-')+'</td><td>'+escaparHTML(c.observacoes||'-')+'</td><td class="status '+classe+'">'+sit+'</td><td class="right">'+formatarMoedaFinanceiro(c.valor)+'</td></tr>');
+      const sit=mostrarPagamento?'COMISSÃO PAGA':(c.comissaoDescontada===true?'DESCONTADA DO FATURAMENTO':'A PAGAR AO PARCEIRO');
+      const pagamento=mostrarPagamento?((c.dataPagamento||'-')+'<br>'+escaparHTML(c.formaPagamento||'-')+(c.obsPagamento?'<br>'+escaparHTML(c.obsPagamento):'')):'';
+      janela.document.write('<tr><td>'+escaparHTML(c.dataInicio||'-')+'</td><td>'+escaparHTML(c.nomeRodeio||'-')+'</td><td>'+escaparHTML([c.cidade,c.estado].filter(Boolean).join('/ ')||'-')+'</td><td>'+escaparHTML(c.parceiro||'-')+'</td><td>'+escaparHTML(c.observacoes||'-')+'</td><td class="status '+classe+'">'+sit+'</td>'+ (mostrarPagamento?'<td>'+pagamento+'</td>':'') +'<td class="right">'+formatarMoedaFinanceiro(c.valor)+'</td></tr>');
     });
-    janela.document.write('<tr><th colspan="6" class="right">TOTAL DA SEÇÃO</th><th class="right">'+formatarMoedaFinanceiro(totalSecao)+'</th></tr></table>');
+    janela.document.write('<tr><th colspan="'+(mostrarPagamento?7:6)+'" class="right">TOTAL DA SEÇÃO</th><th class="right">'+formatarMoedaFinanceiro(totalSecao)+'</th></tr></table>');
   }
 
-  tabela('Comissões já descontadas do faturamento',descontadas,totalDescontadas,'descontada');
-  tabela('Comissões que faltam pagar ao parceiro',aPagar,totalAPagar,'pagar');
-  if(semFinanceiro.length) tabela('Comissões sem lançamento financeiro — conferir',semFinanceiro,totalSemFinanceiro,'sem');
-  janela.document.write('<div class="rodape">Regra: comissão DESCONTADA reduz o valor a receber do cliente. Comissão A PAGAR não reduz o faturamento/contas a receber e permanece como obrigação com o parceiro.</div></body></html>');
-  janela.document.close();janela.focus();
+  tabela('Comissões já descontadas do faturamento',descontadas,totalDescontadas,'descontada',false);
+  tabela('Comissões já pagas ao parceiro',pagas,totalPagas,'paga',true);
+  tabela('Comissões que faltam pagar ao parceiro',aPagar,totalAPagar,'pagar',false);
+  if(semFinanceiro.length) tabela('Comissões sem lançamento financeiro — conferir',semFinanceiro,totalSemFinanceiro,'sem',false);
+  janela.document.write('<div class="rodape">Regra: “Descontada do faturamento” indica que a comissão foi abatida do valor a receber do cliente. “Paga ao parceiro” indica que a baixa foi registrada na aba Comissões. Uma comissão pode estar descontada do cliente e também já paga ao parceiro.</div></body></html>');
+  janela.document.close();
 }
-
-let financeiroCache=[];
-let recebimentosCache={};
 
 function formatarMoedaFinanceiro(v){
   const n=Number(v)||0;
