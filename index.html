@@ -1572,9 +1572,12 @@ function aplicarFiltrosFinanceiro(){
   atualizarResumoFinanceiro(dados);
   renderizarFinanceiro(dados);
 }
+let carregandoFinanceiro=false;
 async function carregarFinanceiro(forcar=false){
   const lista=document.getElementById('listaFinanceiro');if(!lista)return;
+  if(carregandoFinanceiro) return;
   if(!forcar && financeiroCache.length){ preencherMesesFinanceiro(); atualizarResumoFinanceiro(financeiroCache); aplicarFiltrosFinanceiro(); return; }
+  carregandoFinanceiro=true;
   try{
     lista.innerHTML='<p class="contratos-vazio">Carregando financeiro...</p>';
     const resultado=await chamarAPI('listarfinanceiro');
@@ -1583,7 +1586,7 @@ async function carregarFinanceiro(forcar=false){
     preencherMesesFinanceiro();
     atualizarResumoFinanceiro(financeiroCache);
     aplicarFiltrosFinanceiro();
-  }catch(e){console.error(e);lista.innerHTML='<p class="erro">Não foi possível carregar o financeiro.</p>';}
+  }catch(e){console.error(e);lista.innerHTML='<p class="erro">Não foi possível carregar o financeiro. '+escaparHTML(e.message||'Erro de conexão.')+'</p>';} finally { carregandoFinanceiro=false; }
 }
 function configurarFiltrosFinanceiro(){
   const busca=document.getElementById('buscaFinanceiro'),status=document.getElementById('filtroFinanceiro'),mes=document.getElementById('filtroMesFinanceiro'),di=document.getElementById('filtroDataInicioFinanceiro'),df=document.getElementById('filtroDataFimFinanceiro');

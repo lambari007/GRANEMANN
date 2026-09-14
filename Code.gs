@@ -58,7 +58,11 @@ function acaoPermitidaPorPerfil(acao, nivel) {
     'baixarcomissoesparceiro',
     'alterarcomissaodescontada',
     // Necessário para selecionar parceiros dentro de Rodeios e Comissões.
-    'listarparceiros'
+    'listarparceiros',
+    'listarfinanceiro',
+    'listarrecebimentos',
+    'cadastrarrecebimento',
+    'excluirrecebimento'
   ];
 
   return permitidasVisualizador.indexOf(String(acao || '').toLowerCase()) !== -1;
@@ -1404,7 +1408,7 @@ function sincronizarFaturamentoContrato_(dados, idContrato) {
     }
   } else {
     const comissao = obterComissaoPorRodeio_(dados.idRodeio); const chaveAtual = (valores[linha-1][7] === true || String(valores[linha-1][7]).toUpperCase() === 'TRUE' || String(valores[linha-1][7]).toUpperCase() === 'SIM'); const liquido = Math.max(0,faturamento-(chaveAtual?comissao:0)); aba.getRange(linha,2,1,8).setValues([[idContrato,valorTexto_(dados.idRodeio),valorTexto_(dados.cliente),valorTexto_(dados.nomeRodeio),faturamento,comissao,chaveAtual,liquido]]);
-    aba.getRange(linha,12).setValue(converterData(valorTexto_(dados.vencimento)));
+    aba.getRange(linha,13).setValue(converterData(valorTexto_(dados.vencimento)));
   }
   recalcularFinanceiro_(idFinanceiro);
   return idFinanceiro;
@@ -1430,14 +1434,25 @@ function listarFinanceiro() {
     const cache = obterCacheDados_('financeiro');
     if (cache) return {sucesso:true,dados:cache};
     const contratos = listarContratos();
+    if (!contratos || contratos.sucesso === false) {
+      return {sucesso:false,mensagem:(contratos && contratos.mensagem) || 'Não foi possível carregar os contratos.',dados:[]};
+    }
+    const contratoPorId = {};
+    (contratos.dados || []).forEach(c => { contratoPorId[String(c.id)] = c; });
+
     const aba = obterAbaFinanceiro_();
     const valores = aba.getDataRange().getValues();
     if (valores.length <= 1) return {sucesso:true,dados:[]};
     const resultado=[];
     for(let i=1;i<valores.length;i++){
       if(!valores[i][0]) continue;
-      const f=numeroFinanceiro_(valores[i][5]), comissao=numeroFinanceiro_(valores[i][6]), comissaoDescontada=(valores[i][7] === true || String(valores[i][7]).toUpperCase() === 'TRUE' || String(valores[i][7]).toUpperCase() === 'SIM'), liquido=Math.max(0, Math.round((f-(comissaoDescontada?comissao:0))*100)/100), r=numeroFinanceiro_(valores[i][9]);
-      const contrato=(contratos.dados||[]).find(c=>String(c.id)===String(valores[i][1]))||{}; resultado.push({id:valores[i][0],idContrato:valores[i][1],idRodeio:valores[i][2],cliente:valores[i][3]||'',nomeRodeio:valores[i][4]||'',faturamento:f,comissao:comissao,faturamentoLiquido:liquido,recebido:r,saldo:Math.round((liquido-r)*100)/100,statusFinanceiro:statusFinanceiro_(liquido,r),comissaoDescontada:comissaoDescontada,vencimento:formatarData(valores[i][12]),dataRodeio:contrato.dataInicio||'',dataFimRodeio:contrato.dataFim||'',cidade:contrato.cidade||''});
+      const f=numeroFinanceiro_(valores[i][5]);
+      const comissao=numeroFinanceiro_(valores[i][6]);
+      const comissaoDescontada=(valores[i][7] === true || String(valores[i][7]).toUpperCase() === 'TRUE' || String(valores[i][7]).toUpperCase() === 'SIM');
+      const liquido=Math.max(0, Math.round((f-(comissaoDescontada?comissao:0))*100)/100);
+      const r=numeroFinanceiro_(valores[i][9]);
+      const contrato=contratoPorId[String(valores[i][1])]||{};
+      resultado.push({id:valores[i][0],idContrato:valores[i][1],idRodeio:valores[i][2],cliente:valores[i][3]||'',nomeRodeio:valores[i][4]||'',faturamento:f,comissao:comissao,faturamentoLiquido:liquido,recebido:r,saldo:Math.round((liquido-r)*100)/100,statusFinanceiro:statusFinanceiro_(liquido,r),comissaoDescontada:comissaoDescontada,vencimento:formatarData(valores[i][12]),dataRodeio:contrato.dataInicio||'',dataFimRodeio:contrato.dataFim||'',cidade:contrato.cidade||''});
     }
     salvarCacheDados_('financeiro',resultado,30);
     return {sucesso:true,dados:resultado};
