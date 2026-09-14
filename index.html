@@ -1580,7 +1580,7 @@ async function carregarFinanceiro(forcar=false){
   carregandoFinanceiro=true;
   try{
     lista.innerHTML='<p class="contratos-vazio">Carregando financeiro...</p>';
-    const resultado=await chamarAPI('listarfinanceiro');
+    const resultado=await chamarAPI('listarfinanceiro',{nocache:String(Date.now())});
     if(!resultado||!resultado.sucesso) throw new Error((resultado&&resultado.mensagem)||'Falha ao carregar');
     financeiroCache=Array.isArray(resultado.dados)?resultado.dados:[];
     preencherMesesFinanceiro();

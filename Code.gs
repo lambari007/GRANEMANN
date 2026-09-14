@@ -1440,32 +1440,51 @@ function alterarComissaoDescontada(idFinanceiro, descontada) {
 
 function listarFinanceiro() {
   try {
-    const cache = obterCacheDados_('financeiro');
-    if (cache) return {sucesso:true,dados:cache};
-    const contratos = listarContratos();
-    if (!contratos || contratos.sucesso === false) {
-      return {sucesso:false,mensagem:(contratos && contratos.mensagem) || 'Não foi possível carregar os contratos.',dados:[]};
-    }
-    const contratoPorId = {};
-    (contratos.dados || []).forEach(c => { contratoPorId[String(c.id)] = c; });
+    // Leitura direta da aba FINANCEIRO. Não chama listarContratos() nem
+    // faz alterações na estrutura da planilha durante a consulta.
+    const planilha = SpreadsheetApp.openById(ID_PLANILHA);
+    const aba = planilha.getSheetByName(ABA_FINANCEIRO);
+    if (!aba) return {sucesso:true,dados:[]};
 
-    const aba = obterAbaFinanceiro_();
-    const valores = aba.getDataRange().getValues();
-    if (valores.length <= 1) return {sucesso:true,dados:[]};
-    const resultado=[];
-    for(let i=1;i<valores.length;i++){
-      if(!valores[i][0]) continue;
-      const f=numeroFinanceiro_(valores[i][5]);
-      const comissao=numeroFinanceiro_(valores[i][6]);
-      const comissaoDescontada=(valores[i][7] === true || String(valores[i][7]).toUpperCase() === 'TRUE' || String(valores[i][7]).toUpperCase() === 'SIM');
-      const liquido=Math.max(0, Math.round((f-(comissaoDescontada?comissao:0))*100)/100);
-      const r=numeroFinanceiro_(valores[i][9]);
-      const contrato=contratoPorId[String(valores[i][1])]||{};
-      resultado.push({id:valores[i][0],idContrato:valores[i][1],idRodeio:valores[i][2],cliente:valores[i][3]||'',nomeRodeio:valores[i][4]||'',faturamento:f,comissao:comissao,faturamentoLiquido:liquido,recebido:r,saldo:Math.round((liquido-r)*100)/100,statusFinanceiro:statusFinanceiro_(liquido,r),comissaoDescontada:comissaoDescontada,vencimento:formatarData(valores[i][12]),dataRodeio:contrato.dataInicio||'',dataFimRodeio:contrato.dataFim||'',cidade:contrato.cidade||''});
+    const ultimaLinha = aba.getLastRow();
+    if (ultimaLinha < 2) return {sucesso:true,dados:[]};
+
+    const ultimaColuna = Math.max(15, aba.getLastColumn());
+    const valores = aba.getRange(1, 1, ultimaLinha, Math.min(ultimaColuna, 15)).getValues();
+    const resultado = [];
+
+    for (let i = 1; i < valores.length; i++) {
+      const row = valores[i];
+      if (!row[0]) continue;
+      const f = numeroFinanceiro_(row[5]);
+      const comissao = numeroFinanceiro_(row[6]);
+      const comissaoDescontada = row[7] === true || String(row[7]).toUpperCase() === 'TRUE' || String(row[7]).toUpperCase() === 'SIM';
+      const liquido = Math.max(0, Math.round((f - (comissaoDescontada ? comissao : 0)) * 100) / 100);
+      const recebido = numeroFinanceiro_(row[9]);
+
+      resultado.push({
+        id: row[0],
+        idContrato: row[1],
+        idRodeio: row[2],
+        cliente: row[3] || '',
+        nomeRodeio: row[4] || '',
+        faturamento: f,
+        comissao: comissao,
+        faturamentoLiquido: liquido,
+        recebido: recebido,
+        saldo: Math.round((liquido - recebido) * 100) / 100,
+        statusFinanceiro: statusFinanceiro_(liquido, recebido),
+        comissaoDescontada: comissaoDescontada,
+        vencimento: formatarData(row[12]),
+        dataRodeio: '',
+        dataFimRodeio: '',
+        cidade: ''
+      });
     }
-    salvarCacheDados_('financeiro',resultado,30);
     return {sucesso:true,dados:resultado};
-  } catch(e){ return {sucesso:false,mensagem:'Erro ao listar financeiro: '+e.message,dados:[]}; }
+  } catch(e) {
+    return {sucesso:false,mensagem:'Erro ao listar financeiro: '+e.message,dados:[]};
+  }
 }
 
 function listarRecebimentos(idFinanceiro) {
