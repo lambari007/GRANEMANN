@@ -439,8 +439,8 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
       <div class="secao-contrato">
         <h3>5. Financeiro</h3>
         <div class="contrato-grid">
-          <div class="campo"><label>Valor total do contrato (R$)</label><input id="contratoValorTotal" class="valor-destaque" type="number" min="0" step="0.01"></div>
-          <div class="campo"><label>Valor recebido (R$)</label><input id="contratoValorRecebido" type="number" min="0" step="0.01"></div>
+          <div class="campo"><label>Valor total do contrato (R$)</label><input id="contratoValorTotal" class="valor-destaque" type="text" inputmode="decimal" placeholder="Ex.: 150,50"></div>
+          <div class="campo"><label>Valor recebido (R$)</label><input id="contratoValorRecebido" type="text" inputmode="decimal" placeholder="Ex.: 150,50"></div>
           <div class="campo"><label>Forma de pagamento</label><select id="contratoFormaPagamento"><option value="">Selecione</option><option>PIX</option><option>Dinheiro</option><option>Cartão</option><option>Transferência</option><option>Outro</option></select></div>
           <div class="campo"><label>Vencimento</label><input id="contratoVencimento" type="date"></div>
         </div>
@@ -518,7 +518,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
       <div class="campo campo-full"><label>Rodeio</label><select id="comissaoRodeio" required><option value="">Selecione o rodeio</option></select></div>
       <div class="campo"><label>Situação</label><select id="comissaoSituacao" required onchange="atualizarCamposComissao()"><option value="PENDENTE">⚠️ Pendente de definição</option><option value="COM_COMISSAO">🤝 Com comissão</option><option value="SEM_COMISSIONAMENTO">🚫 Sem comissionamento</option></select></div>
       <div class="campo"><label>Parceiro</label><select id="comissaoParceiro"><option value="">Selecione o parceiro</option></select></div>
-      <div class="campo"><label>Valor da comissão (R$)</label><input id="comissaoValor" type="number" min="0" step="0.01"></div>
+      <div class="campo"><label>Valor da comissão (R$)</label><input id="comissaoValor" type="text" inputmode="decimal" placeholder="Ex.: 150,50"></div>
       <div class="campo campo-full"><label>Observação / motivo da comissão</label><textarea id="comissaoObservacoes" rows="3" placeholder="Ex.: Comissão de R$ 75,00 referente à indicação e fechamento deste rodeio."></textarea></div>
     </div><div class="acoes"><button type="submit">💾 SALVAR COMISSÃO</button><button type="button" class="btn-secundario" onclick="limparFormularioComissao()">LIMPAR</button></div><div id="mensagemComissao" style="margin-top:15px;font-weight:bold"></div></form>
   </div>
@@ -1159,10 +1159,14 @@ const CONTRATO_IMAGENS = {
 /* CONTRATOS */
 let contratosCache=[];
 
-function valorCampoContrato(id){
-  const el=document.getElementById(id);
-  return el ? el.value : '';
+function normalizarValorEntrada(v){
+  let s=String(v==null?'':v).trim();
+  if(!s)return '';
+  if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(',','.');
+  return s;
 }
+function valorCampoContrato(id){const el=document.getElementById(id);return el?normalizarValorEntrada(el.value):'';}
+
 
 function definirCampoContrato(id, valor){
   const el=document.getElementById(id);
@@ -1380,7 +1384,8 @@ function renderizarComissoes(){
   }
   l.innerHTML=filtrados.map(x=>{
     const r=x.r,c=x.c,st=statusComissaoUI(c);
-    return '<div class="contrato-card"><h3>'+escaparHTML(r.nomeEvento||'Rodeio #'+r.id)+'</h3><div class="info"><strong>Período:</strong> '+escaparHTML(r.dataInicio||'-')+' até '+escaparHTML(r.dataFim||'-')+'<br><strong>Situação:</strong> <span style="font-weight:bold;'+st.cls+'">'+st.label+'</span>'+(c?'<br><strong>Parceiro:</strong> '+escaparHTML(c.parceiro||'-')+'<br><strong>Comissão:</strong> '+formatarMoedaFinanceiro(c.valor)+(c.observacoes?'<br><strong>Motivo:</strong> '+escaparHTML(c.observacoes):''):'<br><strong>Ação:</strong> Este rodeio ainda precisa de definição.')+'</div><div class="rodeio-acoes"><button type="button" onclick="definirComissao('+r.id+')">'+(c?'✏️ EDITAR / DEFINIR':'⚙️ DEFINIR')+'</button>'+(c?'<button type="button" class="btn-perigo" onclick="excluirComissaoUI('+c.id+')">🗑️ Excluir</button>':'')+'</div></div>';
+    let baixa=''; if(c && c.situacao==='COM_COMISSAO'){ baixa=c.paga ? '<div style="margin-top:10px;padding:10px;border-radius:8px;background:#eaf7ee;border:1px solid #9ad3a8"><strong style="color:#176b2c">✅ COMISSÃO PAGA</strong><br>Data: '+escaparHTML(c.dataPagamento||'-')+'<br>Como foi pago: '+escaparHTML(c.formaPagamento||'-')+(c.obsPagamento?'<br>Obs.: '+escaparHTML(c.obsPagamento):'')+'</div><div class="rodeio-acoes"><button type="button" onclick="baixarComissaoUI('+c.id+',true)">✏️ ALTERAR BAIXA</button></div>' : '<div style="margin-top:10px;padding:10px;border-radius:8px;background:#fff5e6;border:1px solid #e0b45a"><strong style="color:#a06a00">⚠️ COMISSÃO A PAGAR</strong><br>Esta comissão ainda não foi baixada.</div><div class="rodeio-acoes"><button type="button" onclick="baixarComissaoUI('+c.id+',false)">💰 DAR BAIXA NA COMISSÃO</button></div>'; }
+    return '<div class="contrato-card"><h3>'+escaparHTML(r.nomeEvento||'Rodeio #'+r.id)+'</h3><div class="info"><strong>Período:</strong> '+escaparHTML(r.dataInicio||'-')+' até '+escaparHTML(r.dataFim||'-')+'<br><strong>Situação:</strong> <span style="font-weight:bold;'+st.cls+'">'+st.label+'</span>'+(c?'<br><strong>Parceiro:</strong> '+escaparHTML(c.parceiro||'-')+'<br><strong>Comissão:</strong> '+formatarMoedaFinanceiro(c.valor)+(c.observacoes?'<br><strong>Motivo:</strong> '+escaparHTML(c.observacoes):''):'<br><strong>Ação:</strong> Este rodeio ainda precisa de definição.')+'</div>'+baixa+'<div class="rodeio-acoes"><button type="button" onclick="definirComissao('+r.id+')">'+(c?'✏️ EDITAR / DEFINIR':'⚙️ DEFINIR')+'</button>'+(c?'<button type="button" class="btn-perigo" onclick="excluirComissaoUI('+c.id+')">🗑️ Excluir</button>':'')+'</div></div>';
   }).join('');
 }
 function mostrarPendentesComissoes(){
@@ -1391,7 +1396,8 @@ function mostrarPendentesComissoes(){
 }
 function editarComissao(id){definirComissao((comissoesCache.find(x=>String(x.id)===String(id))||{}).idRodeio);}
 async function excluirComissaoUI(id){if(!confirm('Excluir esta definição de comissão?'))return;const r=await chamarAPI('excluircomissao',{id});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível excluir.');return;}await carregarComissoes(true);}
-document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemComissao');const sit=document.getElementById('comissaoSituacao').value,p=document.getElementById('comissaoParceiro').value,v=document.getElementById('comissaoValor').value,o=document.getElementById('comissaoObservacoes').value;m.className='';m.textContent='Salvando definição...';const r=await chamarAPI('cadastrarcomissao',{id:document.getElementById('comissaoId').value,idRodeio:document.getElementById('comissaoRodeio').value,situacao:sit,parceiro:p,valor:v,observacoes:o});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioComissao();await carregarComissoes(true);});
+async function baixarComissaoUI(id,alterar){const c=comissoesCache.find(x=>String(x.id)===String(id));if(!c)return;const data=prompt('Data do pagamento (DD/MM/AAAA ou AAAA-MM-DD):',alterar?(c.dataPagamento||''):new Date().toISOString().slice(0,10));if(!data)return;const forma=prompt('Como foi pago? (PIX, Dinheiro, Transferência, Cartão ou Outro):',c.formaPagamento||'PIX');if(!forma)return;const obs=prompt('Observação do pagamento (opcional):',c.obsPagamento||'')||'';const r=await chamarAPI('baixarcomissao',{id:id,dataPagamento:data,formaPagamento:forma,obsPagamento:obs});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível dar baixa.');return;}await carregarComissoes(true);}
+document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemComissao');const sit=document.getElementById('comissaoSituacao').value,p=document.getElementById('comissaoParceiro').value,v=document.getElementById('comissaoValor').value,o=document.getElementById('comissaoObservacoes').value;m.className='';m.textContent='Salvando definição...';const r=await chamarAPI('cadastrarcomissao',{id:document.getElementById('comissaoId').value,idRodeio:document.getElementById('comissaoRodeio').value,situacao:sit,parceiro:p,valor:normalizarValorEntrada(v),observacoes:o});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioComissao();await carregarComissoes(true);});
 // Sincronização leve: verifica apenas a versão no servidor.
 // A lista completa só é buscada quando realmente houve alteração.
 let ultimaVersaoComissoes = '';
@@ -1620,7 +1626,7 @@ function renderizarFinanceiro(dados){
       '<div class="financeiro-valores"><div class="financeiro-valor"><small>FATURAMENTO</small><strong>'+formatarMoedaFinanceiro(f.faturamento)+'</strong></div><div class="financeiro-valor"><small>COMISSÃO</small><strong>'+formatarMoedaFinanceiro(f.comissao||0)+'</strong></div><div class="financeiro-valor"><small>A RECEBER LÍQUIDO</small><strong>'+formatarMoedaFinanceiro(f.faturamentoLiquido||0)+'</strong></div><div class="financeiro-valor"><small>RECEBIDO</small><strong>'+formatarMoedaFinanceiro(f.recebido)+'</strong></div><div class="financeiro-valor"><small>SALDO</small><strong>'+formatarMoedaFinanceiro(saldo)+'</strong></div></div>'+
       '<div class="recebimentos-box"><strong>Histórico de recebimentos</strong><div id="historico-'+f.idFinanceiro+'">Carregando...</div>'+
       '<form class="recebimento-form" onsubmit="registrarRecebimentoFinanceiro(event,'+f.id+')">'+
-      '<div class="campo"><label>Valor recebido (R$)</label><input name="valor" type="number" min="0.01" step="0.01" required></div>'+
+      '<div class="campo"><label>Valor recebido (R$)</label><input name="valor" type="text" inputmode="decimal" placeholder="Ex.: 150,50" required></div>'+
       '<div class="campo"><label>Data</label><input name="data" type="date" value="'+new Date().toISOString().slice(0,10)+'" required></div>'+
       '<div class="campo"><label>Quem pagou</label><input name="pagador" placeholder="Nome do pagador" required></div>'+
       '<div class="campo"><label>Como pagou</label><select name="formaPagamento" required><option value="">Selecione</option><option>PIX</option><option>Dinheiro</option><option>Transferência</option><option>Cartão</option><option>Outro</option></select></div>'+
