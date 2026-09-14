@@ -534,6 +534,11 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
       <div class="campo" style="display:flex;align-items:end"><button type="button" onclick="mostrarPendentesComissoes()">⚠️ MOSTRAR PENDENTES</button></div>
     </div>
     <div id="resumoFiltroComissoes" style="margin:-4px 0 12px;font-weight:700;color:#666"></div>
+    <div style="margin:0 0 16px;padding:14px;border:1px solid #ddd;border-radius:10px;background:#fafafa">
+      <div style="font-weight:800;font-size:17px;margin-bottom:6px">💸 BAIXA AGRUPADA POR PARCEIRO</div>
+      <div style="color:#666;margin-bottom:12px">Se o parceiro receber várias comissões em um único pagamento, faça uma única baixa pelo valor total.</div>
+      <div id="listaBaixasPorParceiro"><p class="contratos-vazio">Calculando comissões a pagar...</p></div>
+    </div>
     <div id="listaComissoes" class="lista-contratos"><p class="contratos-vazio">Carregando comissões...</p></div>
   </div>
   <div class="card">
@@ -1362,6 +1367,32 @@ function atualizarCamposComissao(){const sit=document.getElementById('comissaoSi
 function statusComissaoUI(c){if(!c)return{label:'⚠️ PENDENTE DE DEFINIÇÃO',cls:'color:#a06a00'};if(c.situacao==='SEM_COMISSIONAMENTO')return{label:'🚫 SEM COMISSIONAMENTO',cls:'color:#176b2c'};if(c.situacao==='COM_COMISSAO')return{label:'🤝 COM COMISSÃO',cls:'color:#176b2c'};return{label:'⚠️ PENDENTE DE DEFINIÇÃO',cls:'color:#a06a00'};}
 function renderizarControleComissoes(){const l=document.getElementById('controleComissoes');if(!l)return;const por={};comissoesCache.forEach(c=>por[String(c.idRodeio)]=c);if(!rodeiosCache.length){l.innerHTML='<p class="contratos-vazio">Nenhum rodeio cadastrado.</p>';return;}l.innerHTML=rodeiosCache.map(r=>{const c=por[String(r.id)],st=statusComissaoUI(c);return '<div class="contrato-card"><h3>'+escaparHTML(r.nomeEvento||('Rodeio #'+r.id))+'</h3><div class="info"><strong>Período:</strong> '+escaparHTML(r.dataInicio||'-')+' até '+escaparHTML(r.dataFim||'-')+'<br><strong>Situação:</strong> <span style="font-weight:bold;'+st.cls+'">'+st.label+'</span>'+(c?'<br><strong>Parceiro:</strong> '+escaparHTML(c.parceiro||'-')+'<br><strong>Comissão:</strong> '+formatarMoedaFinanceiro(c.valor)+(c.observacoes?'<br><strong>Motivo:</strong> '+escaparHTML(c.observacoes):''):'')+'</div><div class="rodeio-acoes"><button type="button" onclick="definirComissao('+r.id+')">'+(c?'✏️ ALTERAR':'⚙️ DEFINIR')+'</button></div></div>';}).join('');}
 function definirComissao(idRodeio){const c=comissoesCache.find(x=>String(x.idRodeio)===String(idRodeio));const r=rodeiosCache.find(x=>String(x.id)===String(idRodeio));if(!r)return alert('Rodeio não encontrado.');abrirPagina('comissoes',document.querySelector('.menu button[onclick*="abrirPagina(\'comissoes\'"]'));limparFormularioComissao();document.getElementById('comissaoRodeio').value=r.id;if(c){document.getElementById('comissaoId').value=c.id;document.getElementById('comissaoSituacao').value=c.situacao||'COM_COMISSAO';document.getElementById('comissaoParceiro').value=c.parceiro||'';document.getElementById('comissaoValor').value=c.valor||'';document.getElementById('comissaoObservacoes').value=c.observacoes||'';}atualizarCamposComissao();document.getElementById('formComissao')?.scrollIntoView({behavior:'smooth',block:'start'});}
+function renderizarBaixasPorParceiro(){
+  const el=document.getElementById('listaBaixasPorParceiro'); if(!el)return;
+  const mapa={};
+  (comissoesCache||[]).forEach(c=>{
+    const parceiro=String(c.parceiro||'').trim();
+    const sit=String(c.situacao||'').toUpperCase();
+    if(!parceiro || sit!=='COM_COMISSAO' || c.paga===true)return;
+    if(!mapa[parceiro])mapa[parceiro]={parceiro:parceiro,total:0,qtd:0};
+    mapa[parceiro].total+=(Number(c.valor)||0); mapa[parceiro].qtd++;
+  });
+  const grupos=Object.values(mapa).sort((a,b)=>a.parceiro.localeCompare(b.parceiro,'pt-BR'));
+  if(!grupos.length){el.innerHTML='<p class="contratos-vazio" style="margin:0">Nenhuma comissão pendente de pagamento aos parceiros.</p>';return;}
+  el.innerHTML=grupos.map(g=>'<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 0;border-top:1px solid #e5e5e5"><div><strong>'+escaparHTML(g.parceiro)+'</strong><br><span style="color:#666">'+g.qtd+' comissão(ões) pendente(s) • <strong>'+formatarMoedaFinanceiro(g.total)+'</strong> a pagar</span></div><button type="button" data-parceiro="'+encodeURIComponent(g.parceiro)+'" onclick="baixarComissoesParceiroUI(decodeURIComponent(this.dataset.parceiro),'+g.total+')">💰 DAR BAIXA — '+formatarMoedaFinanceiro(g.total)+'</button></div>').join('');
+}
+async function baixarComissoesParceiroUI(parceiro,total){
+  const msg='Parceiro: '+parceiro+'\nTotal pendente: '+formatarMoedaFinanceiro(total)+'\n\nIsso vai dar baixa em TODAS as comissões pendentes desse parceiro em um único pagamento.\n\nContinuar?';
+  if(!confirm(msg))return;
+  const data=prompt('Data do pagamento (DD/MM/AAAA ou AAAA-MM-DD):',new Date().toISOString().slice(0,10)); if(!data)return;
+  const forma=prompt('Como foi pago? (PIX, Dinheiro, Transferência, Cartão ou Outro):','PIX'); if(!forma)return;
+  const obs=prompt('Observação do pagamento (opcional):','Pagamento agrupado de '+formatarMoedaFinanceiro(total))||'';
+  const r=await chamarAPI('baixarcomissoesparceiro',{parceiro:parceiro,dataPagamento:data,formaPagamento:forma,obsPagamento:obs});
+  if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível registrar a baixa agrupada.');return;}
+  alert('Baixa registrada!\n'+r.quantidade+' comissão(ões) baixada(s).\nTotal: '+formatarMoedaFinanceiro(r.total));
+  await carregarComissoes(true);
+}
+
 function renderizarComissoes(){
   const l=document.getElementById('listaComissoes');
   if(!l)return;
@@ -1378,6 +1409,7 @@ function renderizarComissoes(){
   const qtdSem=todos.filter(x=>x.st==='SEM_COMISSIONAMENTO').length;
   const resumo=document.getElementById('resumoFiltroComissoes');
   if(resumo) resumo.textContent='Total: '+todos.length+' • Pendentes: '+qtdPendente+' • Com comissão: '+qtdCom+' • Sem comissionamento: '+qtdSem;
+  renderizarBaixasPorParceiro();
   if(!filtrados.length){
     l.innerHTML='<p class="contratos-vazio">Nenhum rodeio encontrado para este filtro.</p>';
     return;
@@ -1617,7 +1649,7 @@ function renderizarFinanceiro(dados){
   dados.forEach(function(f){
     const card=document.createElement('div');card.className='financeiro-card '+classeFinanceiro(f.statusFinanceiro);
     const saldo=Math.max(0,Number(f.saldo)||0);
-    const descontada = f.comissaoDescontada !== false;
+    const descontada = f.comissaoDescontada === true;
     const avisoComissao = Number(f.comissao||0)>0 ? ('<div style="margin:10px 0;padding:10px;border-radius:8px;background:#f5f5f5"><strong>Comissão: '+formatarMoedaFinanceiro(f.comissao||0)+'</strong> — '+(descontada?'DESCONTADA do valor a receber.':'<span style="font-weight:bold">NÃO DESCONTADA — fica a pagar ao parceiro.</span>')+'</div>') : '';
     card.innerHTML='<span class="financeiro-status">'+(f.statusFinanceiro==='Não recebido'?'🔴 NÃO RECEBIDO':f.statusFinanceiro==='Recebimento parcial'?'🟡 PARCIAL':f.statusFinanceiro==='Recebido integralmente'?'🟢 RECEBIDO INTEGRALMENTE':'🟣 ACIMA DO FATURAMENTO')+'</span>'+
       '<h3>'+escaparHTML(f.nomeRodeio||'Rodeio')+'</h3>'+
