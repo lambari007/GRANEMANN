@@ -118,7 +118,8 @@ function doGet(e) {
       tipoDocumentoEvento: params.tipoDocumentoEvento || '',
       cpfCnpjEvento: params.cpfCnpjEvento || '',
       enderecoEvento: params.enderecoEvento || '',
-      nomeDocumentoEvento: params.nomeDocumentoEvento || ''
+      nomeDocumentoEvento: params.nomeDocumentoEvento || '',
+      requestId: params.requestId || ''
     };
 
     return respostaJSONP(cadastrarRodeio(dados), params.callback);
@@ -212,7 +213,8 @@ function doGet(e) {
       secretariaResponsavel: params.secretariaResponsavel || '',
       responsavelMdl: params.responsavelMdl || '',
       observacoes: params.observacoes || '',
-      statusContrato: params.statusContrato || 'Em negociação'
+      statusContrato: params.statusContrato || 'Em negociação',
+      requestId: params.requestId || ''
     };
 
     return respostaJSONP(cadastrarContrato(dados), params.callback);
@@ -546,12 +548,47 @@ function listarRodeios() {
 
 
 // =====================================================
+// IDEMPOTÊNCIA / PROTEÇÃO CONTRA DUPLO CLIQUE E RETRY
+// =====================================================
+function chaveIdempotencia_(tipo, requestId) {
+  return 'idempotencia_' + String(tipo || '').toLowerCase() + '_' + String(requestId || '').trim();
+}
+function obterIdempotencia_(tipo, requestId) {
+  if (!requestId) return '';
+  return CacheService.getScriptCache().get(chaveIdempotencia_(tipo, requestId)) || '';
+}
+function salvarIdempotencia_(tipo, requestId, id) {
+  if (!requestId || id == null || id === '') return;
+  CacheService.getScriptCache().put(chaveIdempotencia_(tipo, requestId), String(id), 21600);
+}
+function normalizarChave_(v) {
+  return String(v == null ? '' : v).trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+}
+function assinaturaRodeio_(dados) {
+  return [dados.nomeEvento,dados.organizador,dados.cidade,dados.estado,dados.dataInicio,dados.dataFim,dados.telefone,dados.tipoDocumentoEvento,dados.cpfCnpjEvento]
+    .map(normalizarChave_).join('|');
+}
+function assinaturaContrato_(dados) {
+  return [dados.idRodeio,dados.cliente,dados.nomeRodeio,dados.dataInicio,dados.dataFim,dados.valorTotal]
+    .map(normalizarChave_).join('|');
+}
+
+// =====================================================
 // CADASTRAR RODEIO
 // =====================================================
 
 function cadastrarRodeio(dados) {
 
+  const requestId = String(dados.requestId || '').trim();
+  const idJaProcessado = obterIdempotencia_('rodeio', requestId);
+  if (idJaProcessado) return { sucesso:true, mensagem:'Rodeio já havia sido salvo.', id:Number(idJaProcessado) || idJaProcessado, status:normalizarStatus(dados.status), repetido:true };
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
   try {
+
+    const idAindaProcessado = obterIdempotencia_('rodeio', requestId);
+    if (idAindaProcessado) return { sucesso:true, mensagem:'Rodeio já havia sido salvo.', id:Number(idAindaProcessado) || idAindaProcessado, status:normalizarStatus(dados.status), repetido:true };
 
     const aba = garantirColunaStatus();
 
@@ -633,6 +670,20 @@ function cadastrarRodeio(dados) {
       };
     }
 
+    // Mesmo que o navegador repita a requisição sem o mesmo token, não crie
+    // um segundo rodeio idêntico enquanto o primeiro já existir.
+    const assinatura = assinaturaRodeio_(dados);
+    const dadosExistentes = aba.getDataRange().getValues();
+    for (let i = 1; i < dadosExistentes.length; i++) {
+      const r = dadosExistentes[i];
+      const existente = [r[1],r[2],r[3],r[4],formatarDataParaComparacao_(r[5]),formatarDataParaComparacao_(r[6]),r[7],r[12],r[13]]
+        .map(normalizarChave_).join('|');
+      if (existente === assinatura) {
+        salvarIdempotencia_('rodeio', requestId, r[0]);
+        return { sucesso:true, mensagem:'Rodeio já cadastrado. Nenhuma duplicação foi criada.', id:r[0], status:normalizarStatus(r[11]), repetido:true };
+      }
+    }
+
     let novoID = 1;
     const ultimaLinha = aba.getLastRow();
 
@@ -689,6 +740,7 @@ function cadastrarRodeio(dados) {
       String(dados.tipoContato || 'Organizador').trim(),
       String(dados.parceiroId || '').trim()
     ]);
+    salvarIdempotencia_('rodeio', requestId, novoID);
     limparCacheDados_('rodeios');
 
     return {
@@ -706,6 +758,8 @@ function cadastrarRodeio(dados) {
         'Erro ao cadastrar rodeio: ' +
         erro.message
     };
+  } finally {
+    try { lock.releaseLock(); } catch (e) {}
   }
 }
 
@@ -1124,18 +1178,56 @@ function montarLinhaContrato_(dados, id, existente) {
 }
 
 function cadastrarContrato(dados) {
+  const requestId = String(dados.requestId || '').trim();
+  const idJaProcessado = obterIdempotencia_('contrato', requestId);
+  if (idJaProcessado) return { sucesso:true, mensagem:'Contrato já havia sido salvo.', id:Number(idJaProcessado) || idJaProcessado, repetido:true };
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
   try {
+    const idAindaProcessado = obterIdempotencia_('contrato', requestId);
+    if (idAindaProcessado) return { sucesso:true, mensagem:'Contrato já havia sido salvo.', id:Number(idAindaProcessado) || idAindaProcessado, repetido:true };
+
     const erro = validarContrato_(dados);
     if (erro) return { sucesso: false, mensagem: erro };
 
     const aba = obterAbaContratos_();
+    const valores = aba.getDataRange().getValues();
+    const idRodeio = valorTexto_(dados.idRodeio);
+    // Um rodeio só pode ter um contrato. Isso também protege contra retry
+    // sem requestId e elimina a causa mais comum de duplicação financeira.
+    if (idRodeio) {
+      for (let i=1;i<valores.length;i++) {
+        if (String(valores[i][1]||'').trim() === idRodeio) {
+          const idExistente=valores[i][0];
+          salvarIdempotencia_('contrato', requestId, idExistente);
+          sincronizarFaturamentoContrato_(dados, idExistente);
+          limparCacheDados_('contratos'); limparCacheDados_('financeiro');
+          return { sucesso:true, mensagem:'Contrato deste rodeio já estava cadastrado. Nenhuma duplicação foi criada.', id:idExistente, repetido:true };
+        }
+      }
+    }
+    const assinatura=assinaturaContrato_(dados);
+    for (let i=1;i<valores.length;i++) {
+      const c=valores[i];
+      const existente=[c[1],c[2],c[11],formatarDataParaComparacao_(c[12]),formatarDataParaComparacao_(c[13]),c[23]].map(normalizarChave_).join('|');
+      if (existente===assinatura) {
+        const idExistente=c[0];
+        salvarIdempotencia_('contrato', requestId, idExistente);
+        sincronizarFaturamentoContrato_(dados, idExistente);
+        return { sucesso:true, mensagem:'Contrato já cadastrado. Nenhuma duplicação foi criada.', id:idExistente, repetido:true };
+      }
+    }
     const id = proximoIdContrato_();
     aba.appendRow(montarLinhaContrato_(dados, id, null));
     sincronizarFaturamentoContrato_(dados, id);
+    salvarIdempotencia_('contrato', requestId, id);
     limparCacheDados_('contratos'); limparCacheDados_('financeiro');
     return { sucesso: true, mensagem: 'Contrato salvo com sucesso.', id: id };
   } catch (erro) {
     return { sucesso: false, mensagem: 'Erro ao cadastrar contrato: ' + erro.message };
+  } finally {
+    try { lock.releaseLock(); } catch (e) {}
   }
 }
 
@@ -1440,8 +1532,8 @@ function alterarComissaoDescontada(idFinanceiro, descontada) {
 
 function listarFinanceiro() {
   try {
-    // Leitura direta da aba FINANCEIRO. Não chama listarContratos() nem
-    // faz alterações na estrutura da planilha durante a consulta.
+    // Leitura direta da aba FINANCEIRO, enriquecida com dados de RODEIOS/CONTRATOS.
+    // A consulta não altera os lançamentos financeiros.
     const planilha = SpreadsheetApp.openById(ID_PLANILHA);
     const aba = planilha.getSheetByName(ABA_FINANCEIRO);
     if (!aba) return {sucesso:true,dados:[]};
@@ -1452,10 +1544,20 @@ function listarFinanceiro() {
     const ultimaColuna = Math.max(15, aba.getLastColumn());
     const valores = aba.getRange(1, 1, ultimaLinha, Math.min(ultimaColuna, 15)).getValues();
     const resultado = [];
+    // O Financeiro guarda os IDs, mas não repete data/cidade do evento.
+    // Enriquecemos a leitura com o cadastro de RODEIOS e, se necessário, CONTRATOS.
+    const rodeios = (listarRodeios().dados || []);
+    const rodeiosMap = {};
+    rodeios.forEach(function(r){ rodeiosMap[String(r.id)] = r; });
+    const contratos = (listarContratos().dados || []);
+    const contratosMap = {};
+    contratos.forEach(function(c){ contratosMap[String(c.id)] = c; });
 
     for (let i = 1; i < valores.length; i++) {
       const row = valores[i];
       if (!row[0]) continue;
+      const r = rodeiosMap[String(row[2])] || {};
+      const c = contratosMap[String(row[1])] || {};
       const f = numeroFinanceiro_(row[5]);
       const comissao = numeroFinanceiro_(row[6]);
       const comissaoDescontada = row[7] === true || String(row[7]).toUpperCase() === 'TRUE' || String(row[7]).toUpperCase() === 'SIM';
@@ -1476,9 +1578,13 @@ function listarFinanceiro() {
         statusFinanceiro: statusFinanceiro_(liquido, recebido),
         comissaoDescontada: comissaoDescontada,
         vencimento: formatarData(row[12]),
-        dataRodeio: '',
-        dataFimRodeio: '',
-        cidade: ''
+        dataRodeio: r.dataInicio || c.dataInicio || '',
+        dataFimRodeio: r.dataFim || c.dataFim || '',
+        cidade: r.cidade || c.cidade || '',
+        estado: r.estado || c.estado || '',
+        organizador: r.organizador || '',
+        telefone: r.telefone || '',
+        idRodeio: row[2] || c.idRodeio || ''
       });
     }
     return {sucesso:true,dados:resultado};
@@ -1532,6 +1638,15 @@ function excluirRecebimento(id) {
 // =====================================================
 // UTILITÁRIOS
 // =====================================================
+
+function formatarDataParaComparacao_(valor) {
+  try {
+    if (valor instanceof Date) return Utilities.formatDate(valor, Session.getScriptTimeZone() || 'America/Sao_Paulo', 'yyyy-MM-dd');
+  } catch (e) {}
+  const s=String(valor||'').trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) { const p=s.split('/'); return p[2]+'-'+p[1]+'-'+p[0]; }
+  return s;
+}
 
 function converterData(data) {
 
