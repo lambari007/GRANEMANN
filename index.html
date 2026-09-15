@@ -1560,6 +1560,7 @@ function chaveMesFinanceiro(f){
   const d=obterDataRodeioFinanceiro(f); return d?d.slice(0,7):'';
 }
 let financeiroCache=[];
+let recebimentosCache={};
 function atualizarResumoFinanceiro(dados){
   dados=dados||financeiroCache;
   const faturamento=dados.reduce((a,x)=>a+(Number(x.faturamento)||0),0);
