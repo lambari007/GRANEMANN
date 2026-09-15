@@ -1628,18 +1628,15 @@ function dadosFiltradosFinanceiro(){
 function formatarDataRelatorioFinanceiro(data){
   if(!data)return '-'; const p=String(data).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:data;
 }
-async function gerarRelatorioFinanceiro(){
+function gerarRelatorioFinanceiro(){
   const dados=dadosFiltradosFinanceiro();
   if(!dados.length){alert('Não há contratos no filtro selecionado para gerar o relatório.');return;}
   const janela=window.open('','_blank');
   if(!janela){alert('O navegador bloqueou o relatório. Permita pop-ups para este sistema.');return;}
 
-  // Busca todos os recebimentos ANTES de escrever o documento.
-  // Isso evita que document.write() após um await apague a tabela já renderizada.
-  for(const f of dados){
-    await carregarRecebimentosFinanceiro(f.id);
-  }
-
+  // O relatório usa os recebimentos já entregues junto com cada lançamento
+  // pelo listarFinanceiro(). Não faz chamadas assíncronas durante a montagem.
+  // Assim a janela nunca fica em branco por causa de um await/timeout.
   const fat=dados.reduce((a,x)=>a+(Number(x.faturamento)||0),0);
   const com=dados.reduce((a,x)=>a+(Number(x.comissao)||0),0);
   const comPagar=dados.reduce((a,x)=>a+(x.comissaoDescontada===false?(Number(x.comissao)||0):0),0);
@@ -1650,18 +1647,17 @@ async function gerarRelatorioFinanceiro(){
   const moeda=v=>formatarMoedaFinanceiro(v);
   const esc=v=>escaparHTML(v);
 
-  let html='<html><head><title>Relatório Financeiro</title><style>body{font-family:Arial,sans-serif;color:#222;padding:30px;max-width:1100px;margin:auto}h1{margin-bottom:4px}.sub{color:#666;margin-bottom:20px}.resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.box{border:1px solid #ccc;border-radius:8px;padding:12px}.box b{display:block;font-size:18px;margin-top:5px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px}th{background:#f2f2f2}.right{text-align:right}.ok{font-weight:bold}.rodape{margin-top:28px;font-size:11px;color:#777}@media print{body{padding:10px}.no-print{display:none}.resumo{grid-template-columns:repeat(4,1fr)}}</style></head><body>';
+  let html='<html><head><meta charset="UTF-8"><title>Relatório Financeiro</title><style>body{font-family:Arial,sans-serif;color:#222;padding:30px;max-width:1100px;margin:auto}h1{margin-bottom:4px}h2{margin-top:28px;border-bottom:2px solid #222;padding-bottom:7px}.sub{color:#666;margin-bottom:20px}.resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.box{border:1px solid #ccc;border-radius:8px;padding:12px}.box b{display:block;font-size:18px;margin-top:5px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px}th{background:#f2f2f2}.right{text-align:right}.ok{font-weight:bold}.rodape{margin-top:28px;font-size:11px;color:#777}@media print{body{padding:10px}.no-print{display:none}.resumo{grid-template-columns:repeat(4,1fr)}}</style></head><body>';
   html+='<button class="no-print" onclick="window.print()" style="padding:10px 16px;margin-bottom:15px">🖨️ Imprimir / Salvar PDF</button><h1>RELATÓRIO FINANCEIRO</h1><div class="sub">Secretaria Granemann • '+periodo+' • Gerado em '+new Date().toLocaleString('pt-BR')+'</div>';
   html+='<div class="resumo"><div class="box">Faturamento bruto<b>'+moeda(fat)+'</b></div><div class="box">Comissões<b>'+moeda(com)+'</b></div><div class="box">Comissões a pagar<b>'+moeda(comPagar)+'</b></div><div class="box">A receber líquido<b>'+moeda(liq)+'</b></div><div class="box">Recebido<b>'+moeda(rec)+'</b></div><div class="box">Saldo em aberto<b>'+moeda(sal)+'</b></div></div>';
   html+='<h2>Resumo por rodeio</h2><table><tr><th>Rodeio</th><th>Data</th><th>Cliente</th><th>Forma(s) de pagamento</th><th class="right">Faturamento bruto</th><th class="right">Comissão</th><th>Comissão descontada?</th><th class="right">A receber líquido</th><th class="right">Recebido</th><th class="right">Saldo</th><th>Status</th></tr>';
   for(const f of dados){
-    const rs=recebimentosCache[f.id]||[];
-    const formas=[...new Set(rs.map(r=>r.formaPagamento).filter(Boolean))].join(', ')||'-';
+    const formas=f.formasPagamento || '-';
     html+='<tr><td>'+esc(f.nomeRodeio||'-')+'</td><td>'+formatarDataRelatorioFinanceiro(obterDataRodeioFinanceiro(f))+'</td><td>'+esc(f.cliente||'-')+'</td><td>'+esc(formas)+'</td><td class="right">'+moeda(f.faturamento)+'</td><td class="right">'+moeda(f.comissao||0)+'</td><td>'+(f.comissaoDescontada===false?'NÃO — A PAGAR':'SIM — DESCONTADA')+'</td><td class="right">'+moeda(f.faturamentoLiquido||0)+'</td><td class="right">'+moeda(f.recebido)+'</td><td class="right">'+moeda(Math.max(0,Number(f.saldo)||0))+'</td><td>'+esc(f.statusFinanceiro||'-')+'</td></tr>';
   }
   html+='</table><h2>Detalhamento dos recebimentos</h2>';
   for(const f of dados){
-    const rs=recebimentosCache[f.id]||[];
+    const rs=Array.isArray(f.recebimentos)?f.recebimentos:[];
     html+='<h3>'+esc(f.nomeRodeio||'Rodeio')+' — '+esc(f.cliente||'-')+'</h3><table><tr><th>Data</th><th>Pagador</th><th>Forma de pagamento</th><th>Observação</th><th class="right">Valor</th></tr>';
     if(rs.length){rs.forEach(r=>html+='<tr><td>'+esc(r.data||'-')+'</td><td>'+esc(r.pagador||'-')+'</td><td>'+esc(r.formaPagamento||'-')+'</td><td>'+esc(r.observacoes||'-')+'</td><td class="right">'+moeda(r.valor)+'</td></tr>');} else html+='<tr><td colspan="5">Nenhum recebimento registrado.</td></tr>';
     html+='<tr><th colspan="4" class="right">Total recebido</th><th class="right">'+moeda(f.recebido)+'</th></tr></table>';

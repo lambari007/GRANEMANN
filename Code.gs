@@ -1553,6 +1553,28 @@ function listarFinanceiro() {
     const contratosMap = {};
     contratos.forEach(function(c){ contratosMap[String(c.id)] = c; });
 
+    // Lê todos os recebimentos uma única vez para enriquecer o relatório
+    // financeiro sem fazer uma chamada ao servidor para cada rodeio.
+    const recebimentosAba = obterAbaRecebimentos_();
+    const recebimentosValores = recebimentosAba.getDataRange().getValues();
+    const recebimentosMap = {};
+    for (let j = 1; j < recebimentosValores.length; j++) {
+      const rr = recebimentosValores[j];
+      if (!rr[0]) continue;
+      const idF = String(rr[1] || '');
+      if (!recebimentosMap[idF]) recebimentosMap[idF] = [];
+      recebimentosMap[idF].push({
+        id: rr[0],
+        idFinanceiro: rr[1],
+        idContrato: rr[2],
+        valor: numeroFinanceiro_(rr[3]),
+        data: formatarData(rr[4]),
+        pagador: rr[5] || '',
+        formaPagamento: rr[6] || '',
+        observacoes: rr[7] || ''
+      });
+    }
+
     for (let i = 1; i < valores.length; i++) {
       const row = valores[i];
       if (!row[0]) continue;
@@ -1584,7 +1606,9 @@ function listarFinanceiro() {
         estado: r.estado || c.estado || '',
         organizador: r.organizador || '',
         telefone: r.telefone || '',
-        idRodeio: row[2] || c.idRodeio || ''
+        idRodeio: row[2] || c.idRodeio || '',
+        recebimentos: recebimentosMap[String(row[0])] || [],
+        formasPagamento: [...new Set((recebimentosMap[String(row[0])] || []).map(function(x){ return x.formaPagamento; }).filter(Boolean))].join(', ')
       });
     }
     return {sucesso:true,dados:resultado};
