@@ -531,6 +531,8 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
         <option value="COM_COMISSAO">🤝 Com comissão</option>
         <option value="SEM_COMISSIONAMENTO">🚫 Sem comissionamento</option>
       </select></div>
+      <div class="campo"><label>Filtrar por rodeio</label><input id="filtroComissoesRodeio" type="search" placeholder="Digite o nome do rodeio..." autocomplete="off"></div>
+      <div class="campo"><label>Filtrar por parceiro</label><input id="filtroComissoesParceiro" type="search" placeholder="Digite o nome do parceiro..." autocomplete="off"></div>
       <div class="campo" style="display:flex;align-items:end"><button type="button" onclick="mostrarPendentesComissoes()">⚠️ MOSTRAR PENDENTES</button></div>
     </div>
     <div id="resumoFiltroComissoes" style="margin:-4px 0 12px;font-weight:700;color:#666"></div>
@@ -1418,13 +1420,19 @@ function renderizarComissoes(){
   const l=document.getElementById('listaComissoes');
   if(!l)return;
   const filtro=document.getElementById('filtroComissoesCadastradas')?.value||'TODAS';
+  const buscaRodeio=normalizarBusca(document.getElementById('filtroComissoesRodeio')?.value||'');
+  const buscaParceiro=normalizarBusca(document.getElementById('filtroComissoesParceiro')?.value||'');
   const por={};
   comissoesCache.forEach(c=>por[String(c.idRodeio)]=c);
   const todos=(rodeiosCache||[]).map(r=>{
     const c=por[String(r.id)];
     return {r,c,st:c?.situacao||'PENDENTE'};
   });
-  const filtrados=todos.filter(x=>filtro==='TODAS'||x.st===filtro);
+  const filtrados=todos.filter(x=>{
+    const nomeRodeio=normalizarBusca(x.r?.nomeEvento||'');
+    const parceiro=normalizarBusca(x.c?.parceiro||'');
+    return (filtro==='TODAS'||x.st===filtro) && (!buscaRodeio||nomeRodeio.includes(buscaRodeio)) && (!buscaParceiro||parceiro.includes(buscaParceiro));
+  });
   const qtdPendente=todos.filter(x=>x.st==='PENDENTE').length;
   const qtdCom=todos.filter(x=>x.st==='COM_COMISSAO').length;
   const qtdSem=todos.filter(x=>x.st==='SEM_COMISSIONAMENTO').length;
@@ -1441,6 +1449,13 @@ function renderizarComissoes(){
     return '<div class="contrato-card"><h3>'+escaparHTML(r.nomeEvento||'Rodeio #'+r.id)+'</h3><div class="info"><strong>Período:</strong> '+escaparHTML(r.dataInicio||'-')+' até '+escaparHTML(r.dataFim||'-')+'<br><strong>Situação:</strong> <span style="font-weight:bold;'+st.cls+'">'+st.label+'</span>'+(c?'<br><strong>Parceiro:</strong> '+escaparHTML(c.parceiro||'-')+'<br><strong>Comissão:</strong> '+formatarMoedaFinanceiro(c.valor)+(c.observacoes?'<br><strong>Motivo:</strong> '+escaparHTML(c.observacoes):''):'<br><strong>Ação:</strong> Este rodeio ainda precisa de definição.')+'</div>'+baixa+'<div class="rodeio-acoes"><button type="button" onclick="definirComissao('+r.id+')">'+(c?'✏️ EDITAR / DEFINIR':'⚙️ DEFINIR')+'</button>'+(c?'<button type="button" class="btn-perigo" onclick="excluirComissaoUI('+c.id+')">🗑️ Excluir</button>':'')+'</div></div>';
   }).join('');
 }
+function configurarFiltrosComissoesCadastradas(){
+  ['filtroComissoesRodeio','filtroComissoesParceiro'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&!el.dataset.configurado){el.dataset.configurado='1';el.addEventListener('input',renderizarComissoes);}
+  });
+}
+configurarFiltrosComissoesCadastradas();
 function mostrarPendentesComissoes(){
   const s=document.getElementById('filtroComissoesCadastradas');
   if(s)s.value='PENDENTE';
@@ -1450,7 +1465,16 @@ function mostrarPendentesComissoes(){
 function editarComissao(id){definirComissao((comissoesCache.find(x=>String(x.id)===String(id))||{}).idRodeio);}
 async function excluirComissaoUI(id){if(!confirm('Excluir esta definição de comissão?'))return;const r=await chamarAPI('excluircomissao',{id});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível excluir.');return;}await carregarComissoes(true);}
 async function baixarComissaoUI(id,alterar){const c=comissoesCache.find(x=>String(x.id)===String(id));if(!c)return;const data=prompt('Data do pagamento (DD/MM/AAAA ou AAAA-MM-DD):',alterar?(c.dataPagamento||''):new Date().toISOString().slice(0,10));if(!data)return;const forma=prompt('Como foi pago? (PIX, Dinheiro, Transferência, Cartão ou Outro):',c.formaPagamento||'PIX');if(!forma)return;const obs=prompt('Observação do pagamento (opcional):',c.obsPagamento||'')||'';const r=await chamarAPI('baixarcomissao',{id:id,dataPagamento:data,formaPagamento:forma,obsPagamento:obs});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível dar baixa.');return;}await carregarComissoes(true);}
-document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemComissao');const sit=document.getElementById('comissaoSituacao').value,p=document.getElementById('comissaoParceiro').value,v=document.getElementById('comissaoValor').value,o=document.getElementById('comissaoObservacoes').value;m.className='';m.textContent='Salvando definição...';const r=await chamarAPI('cadastrarcomissao',{id:document.getElementById('comissaoId').value,idRodeio:document.getElementById('comissaoRodeio').value,situacao:sit,parceiro:p,valor:normalizarValorEntrada(v),observacoes:o});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioComissao();await carregarComissoes(true);});
+document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemComissao');const sit=document.getElementById('comissaoSituacao').value,p=document.getElementById('comissaoParceiro').value,v=document.getElementById('comissaoValor').value,o=document.getElementById('comissaoObservacoes').value;m.className='';m.textContent='Salvando definição...';const r=await chamarAPI('cadastrarcomissao',{id:document.getElementById('comissaoId').value,idRodeio:document.getElementById('comissaoRodeio').value,situacao:sit,parceiro:p,valor:normalizarValorEntrada(v),observacoes:o});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioComissao();
+  if(r.financeiro&&r.financeiro.idFinanceiro){
+    const idx=financeiroCache.findIndex(f=>String(f.idFinanceiro)===String(r.financeiro.idFinanceiro)||String(f.id)===String(r.financeiro.idFinanceiro));
+    if(idx>=0){
+      financeiroCache[idx]={...financeiroCache[idx],...r.financeiro};
+      if(document.getElementById('pagina-financeiro')?.classList.contains('ativa')){preencherMesesFinanceiro();aplicarFiltrosFinanceiro();}
+    }
+  }
+  await carregarComissoes(true);
+});
 // Sincronização leve: verifica apenas a versão no servidor.
 // A lista completa só é buscada quando realmente houve alteração.
 let ultimaVersaoComissoes = '';
@@ -1542,10 +1566,17 @@ function classeFinanceiro(status){
   return 'nao-recebido';
 }
 function formatarDataISOFinanceiro(v){
-  if(!v)return '';
-  const m=String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(v===null||v===undefined||v==='')return '';
+  if(v instanceof Date&&!isNaN(v.getTime())){
+    const y=v.getFullYear(),m=String(v.getMonth()+1).padStart(2,'0'),d=String(v.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+d;
+  }
+  const s=String(v).trim();
+  let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if(m)return m[3]+'-'+m[2]+'-'+m[1];
-  return String(v).slice(0,10);
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m)return m[1]+'-'+m[2]+'-'+m[3];
+  return '';
 }
 function nomeMesFinanceiro(chave){
   const partes=String(chave||'').split('-');
