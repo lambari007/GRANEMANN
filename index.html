@@ -548,8 +548,8 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
     <p style="color:#666;margin:-10px 0 18px">Selecione um parceiro e o período dos rodeios. O relatório mostrará cada evento, a comissão, o motivo e os totais.</p>
     <div class="grid-form">
       <div class="campo"><label>Parceiro</label><select id="relComissaoParceiro"><option value="">Todos os parceiros</option></select></div>
-      <div class="campo"><label>Data inicial</label><input type="date" id="relComissaoInicio"></div>
-      <div class="campo"><label>Data final</label><input type="date" id="relComissaoFim"></div>
+      <div class="campo"><label>Data inicial</label><input type="date" id="relComissaoInicio" autocomplete="off"></div>
+      <div class="campo"><label>Data final</label><input type="date" id="relComissaoFim" autocomplete="off"></div>
       <div class="campo"><label>Situação da comissão</label><select id="relComissaoStatus"><option value="TODAS">Todas</option><option value="DESCONTADAS">Já descontadas</option><option value="APAGAR">Faltam pagar ao parceiro</option></select></div>
     </div>
     <div class="acoes"><button type="button" onclick="gerarRelatorioComissoes()">📊 GERAR RELATÓRIO DE COMISSÕES</button><button type="button" class="btn-secundario" onclick="limparFiltrosRelatorioComissoes()">LIMPAR FILTROS</button></div>
@@ -1474,6 +1474,10 @@ document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.p
     }
   }
   await carregarComissoes(true);
+  // Atualiza o Financeiro imediatamente após a comissão, sem exigir F5.
+  if(document.getElementById('pagina-financeiro')?.classList.contains('ativa')){
+    try{ await carregarFinanceiro(true); }catch(e){ console.warn('Atualização imediata do Financeiro:',e); }
+  }
 });
 // Sincronização leve: verifica apenas a versão no servidor.
 // A lista completa só é buscada quando realmente houve alteração.
@@ -1502,19 +1506,35 @@ setInterval(sincronizarComissoesAutomaticamente,20000);
 
 function preencherFiltroRelatorioComissoes(){const s=document.getElementById('relComissaoParceiro');if(!s)return;const atual=s.value;const ps=(parceirosCache||[]).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));s.innerHTML='<option value="">Todos os parceiros</option>'+ps.map(p=>'<option value="'+escaparHTML(p.nome)+'">'+escaparHTML(p.nome)+'</option>').join('');if(atual)s.value=atual;}
 function limparFiltrosRelatorioComissoes(){const s=document.getElementById('relComissaoParceiro');if(s)s.value='';const i=document.getElementById('relComissaoInicio');if(i)i.value='';const f=document.getElementById('relComissaoFim');if(f)f.value='';const st=document.getElementById('relComissaoStatus');if(st)st.value='TODAS';}
+function obterDataFiltroComissao(id){
+  const el=document.getElementById(id);
+  if(!el)return '';
+  // Input type=date normalmente retorna AAAA-MM-DD. O fallback aceita DD/MM/AAAA
+  // caso o navegador/localidade devolva a data nesse formato.
+  const valor=String(el.value||'').trim();
+  const normalizada=formatarDataISOFinanceiro(valor);
+  if(normalizada)return normalizada;
+  if(el.valueAsDate && !isNaN(el.valueAsDate.getTime())){
+    const d=el.valueAsDate;
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  return '';
+}
 function gerarRelatorioComissoes(){
   if(!comissoesCache.length){alert('Não há comissões cadastradas para gerar o relatório.');return;}
   const parceiro=(document.getElementById('relComissaoParceiro')?.value||'').trim();
-  const inicio=document.getElementById('relComissaoInicio')?.value||'';
-  const fim=document.getElementById('relComissaoFim')?.value||'';
+  const inicio=obterDataFiltroComissao('relComissaoInicio');
+  const fim=obterDataFiltroComissao('relComissaoFim');
   const status=(document.getElementById('relComissaoStatus')?.value||'TODAS').trim();
+  if(inicio&&fim&&fim<inicio){alert('A data final não pode ser anterior à data inicial.');return;}
   const dados=comissoesCache.filter(c=>{
     const p=!parceiro||String(c.parceiro)===parceiro;
     const d=formatarDataISOFinanceiro(c.dataInicio||'');
+    // As duas pontas são inclusivas: início <= data do rodeio <= fim.
     const periodo=(!inicio||!d||d>=inicio)&&(!fim||!d||d<=fim);
     const st=status==='TODAS'||(status==='DESCONTADAS'&&c.comissaoDescontada===true)||(status==='APAGAR'&&c.paga!==true);
     return p&&periodo&&st;
-  }).sort((a,b)=>String(a.dataInicio||'').localeCompare(String(b.dataInicio||'')));
+  }).sort((a,b)=>formatarDataISOFinanceiro(a.dataInicio||'').localeCompare(formatarDataISOFinanceiro(b.dataInicio||'')));
   if(!dados.length){alert('Nenhuma comissão encontrada para os filtros selecionados.');return;}
 
   const descontadas=dados.filter(c=>c.comissaoDescontada===true);
