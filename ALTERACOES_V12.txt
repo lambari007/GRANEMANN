@@ -1,0 +1,18 @@
+VERSÃO 12 - CORREÇÕES DA ONLINE E SINCRONIZAÇÃO DO FINANCEIRO
+
+1. Repasse ao contratante:
+   - Agora é calculado como VALOR VENDIDO PELA ONLINE - VALOR GERADO PELA ONLINE.
+   - Não usa mais a comissão da online para calcular o repasse.
+
+2. Comissão online:
+   - O valor da comissão normal pode continuar em R$ 0,00 quando existir comissão da online.
+   - O valor da comissão da online continua compondo o total de comissões do rodeio.
+
+3. Financeiro:
+   - Ao salvar a comissão, o valor gerado pela online é sincronizado imediatamente com o FATURAMENTO do rodeio.
+   - O sistema procura o lançamento financeiro pelo ID do rodeio com comparação normalizada.
+   - Se não encontrar o lançamento financeiro, procura diretamente o contrato e cria/sincroniza o lançamento financeiro.
+   - A sincronização não depende do cache de contratos.
+
+4. Planilha de comissões:
+   - A leitura de VALOR_ONLINE e COMISSAO_ONLINE passa a usar os nomes dos cabeçalhos, evitando erro caso a posição das colunas tenha mudado.

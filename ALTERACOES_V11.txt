@@ -1,0 +1,5 @@
+ALTERAÇÕES V11
+
+1. Corrigida a busca do Financeiro: o campo de pesquisa agora dispara o filtro diretamente a cada tecla digitada.
+2. A busca considera rodeio, cliente, cidade, estado, organizador, ID do rodeio e ID do contrato.
+3. Mantida a sincronização do Financeiro da V10.

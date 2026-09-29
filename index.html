@@ -500,7 +500,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
       <div class="resumo-card c4"><span id="finNaoRecebido" class="resumo-numero">0</span><span class="resumo-label">🔴 Sem recebimento</span></div>
     </div>
     <div class="financeiro-filtros">
-      <div class="filtro-busca"><span>🔎</span><input type="search" id="buscaFinanceiro" placeholder="Rodeio, cliente ou cidade..." autocomplete="off"></div>
+      <div class="filtro-busca"><span>🔎</span><input type="search" id="buscaFinanceiro" placeholder="Rodeio, cliente ou cidade..." autocomplete="off" oninput="aplicarFiltrosFinanceiro()"></div>
       <div class="filtro-status"><select id="filtroFinanceiro"><option value="Todos">📋 Todos</option><option value="Não recebido">🔴 Não recebido</option><option value="Recebimento parcial">🟡 Parcial</option><option value="Recebido integralmente">🟢 Integral</option><option value="Acima do faturamento">🟣 Acima do faturamento</option></select></div>
       <div class="filtro-status"><select id="filtroMesFinanceiro"><option value="Todos">📅 Todos os meses</option></select></div>
       <div class="filtro-status"><input type="date" id="filtroDataInicioFinanceiro" title="Data inicial"></div>
@@ -519,8 +519,8 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
       <div class="campo"><label>Situação</label><select id="comissaoSituacao" required onchange="atualizarCamposComissao()"><option value="PENDENTE">⚠️ Pendente de definição</option><option value="COM_COMISSAO">🤝 Com comissão</option><option value="SEM_COMISSIONAMENTO">🚫 Sem comissionamento</option></select></div>
       <div class="campo"><label>Parceiro</label><select id="comissaoParceiro"><option value="">Selecione o parceiro</option></select></div>
       <div class="campo"><label>Valor da comissão (R$)</label><input id="comissaoValor" type="text" inputmode="decimal" value="0" placeholder="Ex.: 150,50"><small style="display:block;color:#777;margin-top:5px">Pode ser R$ 0,00 quando houver somente comissão da online.</small></div>
-      <div class="campo"><label>💻 Valor gerado pela online (R$)</label><input id="comissaoValorOnline" type="text" inputmode="decimal" placeholder="Ex.: 20.000,00"><small style="display:block;color:#777;margin-top:5px">Valor gerado pela operação online; será somado ao faturamento do rodeio.</small></div>
-      <div class="campo"><label>💻 Valor vendido pela online (R$)</label><input id="comissaoVendidoOnline" type="text" inputmode="decimal" placeholder="Ex.: 20.000,00" oninput="atualizarRepasseOnline()" onchange="atualizarRepasseOnline()"><small style="display:block;color:#777;margin-top:5px">Total efetivamente vendido/recebido pela plataforma.</small></div><div class="campo"><label>💻 Comissão da online (R$)</label><input id="comissaoOnline" type="text" inputmode="decimal" placeholder="Ex.: 15,00" oninput="atualizarRepasseOnline()" onchange="atualizarRepasseOnline()"><small style="display:block;color:#777;margin-top:5px">Entra no total de comissões desse rodeio.</small></div><div class="campo"><label>💻 Repasse ao contratante (R$)</label><input id="comissaoRepasseOnline" type="text" readonly><small style="display:block;color:#777;margin-top:5px">Calculado: vendido online menos a comissão da online.</small></div>
+      <div class="campo"><label>💻 Valor gerado pela online (R$)</label><input id="comissaoValorOnline" type="text" inputmode="decimal" placeholder="Ex.: 20.000,00"><small style="display:block;color:#777;margin-top:5px">Valor que será somado ao faturamento do rodeio no Financeiro.</small></div>
+      <div class="campo"><label>💻 Valor vendido pela online (R$)</label><input id="comissaoVendidoOnline" type="text" inputmode="decimal" placeholder="Ex.: 20.000,00" oninput="atualizarRepasseOnline()" onchange="atualizarRepasseOnline()"><small style="display:block;color:#777;margin-top:5px">Total efetivamente vendido/recebido pela plataforma.</small></div><div class="campo"><label>💻 Comissão da online (R$)</label><input id="comissaoOnline" type="text" inputmode="decimal" placeholder="Ex.: 15,00" oninput="atualizarRepasseOnline()" onchange="atualizarRepasseOnline()"><small style="display:block;color:#777;margin-top:5px">Entra no total de comissões desse rodeio.</small></div><div class="campo"><label>💻 Repasse ao contratante (R$)</label><input id="comissaoRepasseOnline" type="text" readonly><small style="display:block;color:#777;margin-top:5px">Calculado: vendido online menos o valor gerado pela online.</small></div>
       <div class="campo campo-full"><label>Observação / motivo da comissão</label><textarea id="comissaoObservacoes" rows="3" placeholder="Ex.: Comissão de R$ 75,00 referente à indicação e fechamento deste rodeio."></textarea></div>
     </div><div class="acoes"><button type="submit">💾 SALVAR COMISSÃO</button><button type="button" class="btn-secundario" onclick="limparFormularioComissao()">LIMPAR</button></div><div id="mensagemComissao" style="margin-top:15px;font-weight:bold"></div></form>
   </div>
@@ -739,7 +739,7 @@ document.getElementById('tituloPagina').textContent=titulos[nome]||nome;
 
 if(nome==='rodeios'){configurarFiltros();if(rodeiosCache.length)aplicarFiltrosRodeios();else carregarRodeios();}
 if(nome==='contratos'){carregarContratos(false);}
-if(nome==='financeiro'){carregarFinanceiro(false);}
+if(nome==='financeiro'){carregarFinanceiro(true);}
 if(nome==='comissoes'){carregarComissoes();preencherFiltroRelatorioComissoes();atualizarCamposComissao();}
 if(nome==='parceiros'){carregarParceiros();}
 
@@ -1365,7 +1365,13 @@ document.getElementById('formContrato').addEventListener('submit',async function
       limparFormularioContrato();
       formulario.dataset.requestId='';
       if(botao){botao.disabled=false;botao.textContent=botao.dataset.textoOriginal||'💾 SALVAR CONTRATO';}
+      // O salvamento do contrato também cria/atualiza o lançamento no Financeiro no servidor.
+      // Invalidamos o cache local para que o Financeiro nunca continue mostrando a lista antiga.
+      financeiroCache=[];
       carregarContratos(true);
+      if(document.getElementById('pagina-financeiro')?.classList.contains('ativa')){
+        carregarFinanceiro(true);
+      }
     }else{
       mensagem.className='erro';
       mensagem.textContent=resultado.mensagem||'Não foi possível salvar o contrato.';
@@ -1398,9 +1404,9 @@ document.getElementById('formParceiro')?.addEventListener('submit',async e=>{e.p
 function limparFormularioComissao(){document.getElementById('formComissao')?.reset();document.getElementById('comissaoId').value='';document.getElementById('comissaoSituacao').value='PENDENTE';document.getElementById('comissaoParceiro').value='';document.getElementById('comissaoValor').value='';document.getElementById('comissaoValorOnline').value='';document.getElementById('comissaoOnline').value='';document.getElementById('comissaoVendidoOnline').value='';document.getElementById('comissaoRepasseOnline').value='';document.getElementById('comissaoObservacoes').value='';document.getElementById('mensagemComissao').textContent='';atualizarCamposComissao();}
 function atualizarRepasseOnline(){
   const vendidoEl=document.getElementById('comissaoVendidoOnline');
-  const comissaoEl=document.getElementById('comissaoOnline');
+  const geradoEl=document.getElementById('comissaoValorOnline');
   const repEl=document.getElementById('comissaoRepasseOnline');
-  if(!vendidoEl||!comissaoEl||!repEl)return;
+  if(!vendidoEl||!geradoEl||!repEl)return;
   const parseValor=function(v){
     let s=String(v==null?'':v).trim();
     if(!s)return 0;
@@ -1411,8 +1417,8 @@ function atualizarRepasseOnline(){
     return isFinite(n)?n:0;
   };
   const vendido=parseValor(vendidoEl.value);
-  const comissao=parseValor(comissaoEl.value);
-  const repasse=Math.max(0,vendido-comissao);
+  const gerado=parseValor(geradoEl.value);
+  const repasse=Math.max(0,vendido-gerado);
   repEl.value=repasse.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 function atualizarCamposComissao(){const sit=document.getElementById('comissaoSituacao')?.value||'PENDENTE',p=document.getElementById('comissaoParceiro'),v=document.getElementById('comissaoValor'),vo=document.getElementById('comissaoValorOnline'),vo2=document.getElementById('comissaoVendidoOnline'),co=document.getElementById('comissaoOnline'),rep=document.getElementById('comissaoRepasseOnline'),o=document.getElementById('comissaoObservacoes');if(!p||!v||!vo||!vo2||!co||!rep||!o)return;const temComissao=sit==='COM_COMISSAO',sem=sit==='SEM_COMISSIONAMENTO';p.required=temComissao;v.required=false;vo.required=false;co.required=false;o.required=sem;p.disabled=sem||sit==='PENDENTE';v.disabled=sem||sit==='PENDENTE';vo.disabled=sem||sit==='PENDENTE';co.disabled=sem||sit==='PENDENTE';vo2.disabled=sem||sit==='PENDENTE';rep.disabled=true;if(sem){p.value='';v.value='0';vo.value='0';vo2.value='0';co.value='0';rep.value='0,00';}else if(sit==='PENDENTE'){p.value='';v.value='';vo.value='';vo2.value='';co.value='';rep.value='';}atualizarRepasseOnline();}
@@ -1500,8 +1506,8 @@ function mostrarPendentesComissoes(){
 function editarComissao(id){definirComissao((comissoesCache.find(x=>String(x.id)===String(id))||{}).idRodeio);}
 async function excluirComissaoUI(id){if(!confirm('Excluir esta definição de comissão?'))return;const r=await chamarAPI('excluircomissao',{id});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível excluir.');return;}await carregarComissoes(true);}
 async function baixarComissaoUI(id,alterar){const c=comissoesCache.find(x=>String(x.id)===String(id));if(!c)return;const data=prompt('Data do pagamento (DD/MM/AAAA ou AAAA-MM-DD):',alterar?(c.dataPagamento||''):new Date().toISOString().slice(0,10));if(!data)return;const forma=prompt('Como foi pago? (PIX, Dinheiro, Transferência, Cartão ou Outro):',c.formaPagamento||'PIX');if(!forma)return;const obs=prompt('Observação do pagamento (opcional):',c.obsPagamento||'')||'';const r=await chamarAPI('baixarcomissao',{id:id,dataPagamento:data,formaPagamento:forma,obsPagamento:obs});if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível dar baixa.');return;}await carregarComissoes(true);}
-document.getElementById('comissaoVendidoOnline')?.addEventListener('input',atualizarRepasseOnline);document.getElementById('comissaoOnline')?.addEventListener('input',atualizarRepasseOnline);document.getElementById('comissaoVendidoOnline')?.addEventListener('input',atualizarCamposComissao);document.getElementById('comissaoOnline')?.addEventListener('input',atualizarCamposComissao);document.getElementById('comissaoValorOnline')?.addEventListener('input',atualizarCamposComissao);
-document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemComissao');const sit=document.getElementById('comissaoSituacao').value,p=document.getElementById('comissaoParceiro').value,v=document.getElementById('comissaoValor').value||'0',vo=document.getElementById('comissaoValorOnline').value||'0',co=document.getElementById('comissaoOnline').value||'0',o=document.getElementById('comissaoObservacoes').value;m.className='';m.textContent='Salvando definição...';const r=await chamarAPI('cadastrarcomissao',{id:document.getElementById('comissaoId').value,idRodeio:document.getElementById('comissaoRodeio').value,situacao:sit,parceiro:p,valor:normalizarValorEntrada(v),valorOnline:normalizarValorEntrada(vo),vendidoOnline:normalizarValorEntrada(document.getElementById('comissaoVendidoOnline').value||'0'),comissaoOnline:normalizarValorEntrada(co),observacoes:o});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioComissao();
+document.getElementById('comissaoVendidoOnline')?.addEventListener('input',atualizarRepasseOnline);document.getElementById('comissaoValorOnline')?.addEventListener('input',atualizarRepasseOnline);document.getElementById('comissaoOnline')?.addEventListener('input',atualizarRepasseOnline);document.getElementById('comissaoVendidoOnline')?.addEventListener('input',atualizarCamposComissao);document.getElementById('comissaoOnline')?.addEventListener('input',atualizarCamposComissao);document.getElementById('comissaoValorOnline')?.addEventListener('input',atualizarCamposComissao);
+document.getElementById('formComissao')?.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('mensagemComissao');const sit=document.getElementById('comissaoSituacao').value,p=document.getElementById('comissaoParceiro').value,v=document.getElementById('comissaoValor').value||'0',vo=document.getElementById('comissaoValorOnline').value||'0',co=document.getElementById('comissaoOnline').value||'0',o=document.getElementById('comissaoObservacoes').value;m.className='';m.textContent='Salvando definição...';atualizarRepasseOnline();const r=await chamarAPI('cadastrarcomissao',{id:document.getElementById('comissaoId').value,idRodeio:document.getElementById('comissaoRodeio').value,situacao:sit,parceiro:p,valor:normalizarValorEntrada(v),valorOnline:normalizarValorEntrada(vo),vendidoOnline:normalizarValorEntrada(document.getElementById('comissaoVendidoOnline').value||'0'),comissaoOnline:normalizarValorEntrada(co),observacoes:o});if(!r||!r.sucesso){m.className='erro';m.textContent=(r&&r.mensagem)||'Não foi possível salvar.';return;}m.className='sucesso';m.textContent=r.mensagem;limparFormularioComissao();
   if(r.financeiro&&r.financeiro.idFinanceiro){
     const idx=financeiroCache.findIndex(f=>String(f.idFinanceiro)===String(r.financeiro.idFinanceiro)||String(f.id)===String(r.financeiro.idFinanceiro));
     if(idx>=0){
@@ -1672,7 +1678,7 @@ function aplicarFiltrosFinanceiro(){
   const inicio=document.getElementById('filtroDataInicioFinanceiro')?.value||'';
   const fim=document.getElementById('filtroDataFimFinanceiro')?.value||'';
   const dados=financeiroCache.filter(f=>{
-    const texto=normalizarBusca([f.nomeRodeio,f.cliente,f.idRodeio,f.cidade].join(' '));
+    const texto=normalizarBusca([f.nomeRodeio,f.cliente,f.cidade,f.estado,f.organizador,f.idRodeio,f.idContrato].join(' '));
     const data=obterDataRodeioFinanceiro(f);
     return (!busca||texto.includes(busca)) &&
       (filtro==='Todos'||f.statusFinanceiro===filtro) &&
@@ -1710,7 +1716,7 @@ function dadosFiltradosFinanceiro(){
   const mes=document.getElementById('filtroMesFinanceiro')?.value||'Todos';
   const inicio=document.getElementById('filtroDataInicioFinanceiro')?.value||'';
   const fim=document.getElementById('filtroDataFimFinanceiro')?.value||'';
-  return financeiroCache.filter(f=>{const texto=normalizarBusca([f.nomeRodeio,f.cliente,f.idRodeio,f.cidade].join(' '));const data=obterDataRodeioFinanceiro(f);return (!busca||texto.includes(busca))&&(filtro==='Todos'||f.statusFinanceiro===filtro)&&(mes==='Todos'||chaveMesFinanceiro(f)===mes)&&(!inicio||!data||data>=inicio)&&(!fim||!data||data<=fim);});
+  return financeiroCache.filter(f=>{const texto=normalizarBusca([f.nomeRodeio,f.cliente,f.cidade,f.estado,f.organizador,f.idRodeio,f.idContrato].join(' '));const data=obterDataRodeioFinanceiro(f);return (!busca||texto.includes(busca))&&(filtro==='Todos'||f.statusFinanceiro===filtro)&&(mes==='Todos'||chaveMesFinanceiro(f)===mes)&&(!inicio||!data||data>=inicio)&&(!fim||!data||data<=fim);});
 }
 function formatarDataRelatorioFinanceiro(data){
   if(!data)return '-'; const p=String(data).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:data;
