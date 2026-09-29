@@ -1329,7 +1329,81 @@ function listarComissoes(){
 }
 function formatarDataPagamento_(v){try{if(v instanceof Date)return Utilities.formatDate(v,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy');const s=String(v||'');if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0];}return s;}catch(e){return String(v||'');}}
 function garantirColunaVendidoOnline_(){const a=obterAbaComissoes_(); if(a.getRange(1,1,1,a.getLastColumn()).getValues()[0].indexOf('VENDIDO_ONLINE')<0) a.getRange(1,CABECALHO_COMISSOES.length).setValue('VENDIDO_ONLINE');}
-function cadastrarComissao(d){try{garantirColunaVendidoOnline_();const idR=String(d.idRodeio||'').trim(),sit=String(d.situacao||'COM_COMISSAO').trim().toUpperCase(),par=valorTexto_(d.parceiro),val=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.valor),valorOnline=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.valorOnline),comissaoOnline=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.comissaoOnline),vendidoOnline=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.vendidoOnline),obs=valorTexto_(d.observacoes);if(!idR)return{sucesso:false,mensagem:'Selecione o rodeio.'};if(!['COM_COMISSAO','SEM_COMISSIONAMENTO','PENDENTE'].includes(sit))return{sucesso:false,mensagem:'Situação inválida.'};if(sit==='COM_COMISSAO'&&!par)return{sucesso:false,mensagem:'Informe o parceiro.'};if(sit==='COM_COMISSAO'&&val<0)return{sucesso:false,mensagem:'O valor da comissão não pode ser negativo.'};if(sit==='COM_COMISSAO'&&comissaoOnline<0)return{sucesso:false,mensagem:'A comissão da online não pode ser negativa.'};if(sit==='COM_COMISSAO'&&val<=0&&comissaoOnline<=0)return{sucesso:false,mensagem:'Informe um valor de comissão ou uma comissão da online maior que zero.'};if(sit==='SEM_COMISSIONAMENTO'&&!obs)return{sucesso:false,mensagem:'Informe a justificativa do sem comissionamento.'};const a=obterAbaComissoes_(),v=a.getDataRange().getValues();let linha=-1,id='',paga=false,dataPag='',formaPag='',obsPag='',valorPagoExistente=0;for(let i=1;i<v.length;i++)if(String(v[i][1])===idR){linha=i+1;id=v[i][0];paga=v[i][7]===true||String(v[i][7]).toUpperCase()==='TRUE';dataPag=v[i][8]||'';formaPag=v[i][9]||'';obsPag=v[i][10]||'';valorPagoExistente=numeroFinanceiro_(v[i][13]);break;}const r=(listarRodeios().dados||[]).find(x=>String(x.id)===idR);if(!r)return{sucesso:false,mensagem:'Rodeio não encontrado.'};const valorTotalComissao=val+comissaoOnline; const valorPagoFinal=valorPagoExistente>0?Math.min(valorPagoExistente,valorTotalComissao):(paga?valorTotalComissao:0); const ld=[id||proximoIdGenerico_(a),idR,r.nomeEvento||'',sit==='SEM_COMISSIONAMENTO'?'':par,val,obs,sit,paga,dataPag,formaPag,obsPag,new Date(),Session.getActiveUser().getEmail()||'SISTEMA',valorPagoFinal,valorOnline,comissaoOnline,vendidoOnline];if(linha<0)a.appendRow(ld);else a.getRange(linha,1,1,CABECALHO_COMISSOES.length).setValues([ld]);const financeiro=sincronizarFinanceiroPorRodeio_(idR);marcarVersaoComissoes_();limparCacheDados_('comissoes');limparCacheDados_('financeiro');return{sucesso:true,mensagem:'Definição salva com sucesso.',id:ld[0],financeiro:financeiro};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar comissão: '+e.message};}}
+function cadastrarComissao(d){try{garantirColunaVendidoOnline_();const idR=String(d.idRodeio||'').trim(),sit=String(d.situacao||'COM_COMISSAO').trim().toUpperCase(),par=valorTexto_(d.parceiro),val=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.valor),valorOnline=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.valorOnline),comissaoOnline=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.comissaoOnline),vendidoOnline=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.vendidoOnline),obs=valorTexto_(d.observacoes);if(!idR)return{sucesso:false,mensagem:'Selecione o rodeio.'};if(!['COM_COMISSAO','SEM_COMISSIONAMENTO','PENDENTE'].includes(sit))return{sucesso:false,mensagem:'Situação inválida.'};if(sit==='COM_COMISSAO'&&!par)return{sucesso:false,mensagem:'Informe o parceiro.'};if(sit==='COM_COMISSAO'&&val<0)return{sucesso:false,mensagem:'O valor da comissão não pode ser negativo.'};if(sit==='COM_COMISSAO'&&comissaoOnline<0)return{sucesso:false,mensagem:'A comissão da online não pode ser negativa.'};if(sit==='COM_COMISSAO'&&val<=0&&comissaoOnline<=0)return{sucesso:false,mensagem:'Informe um valor de comissão ou uma comissão da online maior que zero.'};if(sit==='SEM_COMISSIONAMENTO'&&!obs)return{sucesso:false,mensagem:'Informe a justificativa do sem comissionamento.'};const a=obterAbaComissoes_(),v=a.getDataRange().getValues();let linha=-1,id='',paga=false,dataPag='',formaPag='',obsPag='',valorPagoExistente=0;for(let i=1;i<v.length;i++)if(String(v[i][1])===idR){linha=i+1;id=v[i][0];paga=v[i][7]===true||String(v[i][7]).toUpperCase()==='TRUE';dataPag=v[i][8]||'';formaPag=v[i][9]||'';obsPag=v[i][10]||'';valorPagoExistente=numeroFinanceiro_(v[i][13]);break;}const r=(listarRodeios().dados||[]).find(x=>String(x.id)===idR);if(!r)return{sucesso:false,mensagem:'Rodeio não encontrado.'};const valorTotalComissao=val+comissaoOnline; const valorPagoFinal=valorPagoExistente>0?Math.min(valorPagoExistente,valorTotalComissao):(paga?valorTotalComissao:0); const ld=[id||proximoIdGenerico_(a),idR,r.nomeEvento||'',sit==='SEM_COMISSIONAMENTO'?'':par,val,obs,sit,paga,dataPag,formaPag,obsPag,new Date(),Session.getActiveUser().getEmail()||'SISTEMA',valorPagoFinal,valorOnline,comissaoOnline,vendidoOnline];if(linha<0)a.appendRow(ld);else a.getRange(linha,1,1,CABECALHO_COMISSOES.length).setValues([ld]);// Primeiro confirma a gravação da comissão e libera o cache. A sincronização financeira é feita por uma rotina leve, sem recarregar todas as listas do sistema.
+      SpreadsheetApp.flush();
+      marcarVersaoComissoes_();
+      limparCacheDados_('comissoes');
+      limparCacheDados_('financeiro');
+      let financeiro=null;
+      try { financeiro=sincronizarFinanceiroOnlineRapido_(idR, valorOnline, valorTotalComissao); } catch(eFin) { financeiro={erro:eFin.message}; }
+      limparCacheDados_('comissoes');
+      limparCacheDados_('financeiro');
+      return{sucesso:true,mensagem:'Definição salva com sucesso.',id:ld[0],financeiro:financeiro};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar comissão: '+e.message};}}
+function sincronizarFinanceiroOnlineRapido_(idR, valorOnline, valorTotalComissao){
+  // Sincroniza somente o rodeio recém-alterado. Evita listar Financeiro/Comissões inteiros,
+  // que podia fazer a chamada do site atingir o limite de 30 segundos.
+  const idRNorm=String(idR||'').trim();
+  const online=numeroFinanceiro_(valorOnline);
+  const comissao=numeroFinanceiro_(valorTotalComissao);
+  const abaF=obterAbaFinanceiro_();
+  const vf=abaF.getDataRange().getValues();
+  let linha=-1;
+  for(let i=1;i<vf.length;i++){
+    if(String(vf[i][2]||'').trim()===idRNorm){ linha=i+1; break; }
+  }
+
+  let idFinanceiro='';
+  let idContrato='';
+  let base=0;
+  let recebido=0;
+  let descontada=false;
+  let cliente='';
+  let nomeRodeio='';
+  let vencimento='';
+
+  if(linha>0){
+    const atual=vf[linha-1];
+    idFinanceiro=atual[0];
+    idContrato=atual[1];
+    recebido=numeroFinanceiro_(atual[9]);
+    descontada=atual[7]===true||String(atual[7]).toUpperCase()==='TRUE'||String(atual[7]).toUpperCase()==='SIM';
+    base=numeroFinanceiro_(atual[5]);
+    cliente=atual[3]||'';
+    nomeRodeio=atual[4]||'';
+    vencimento=atual[12]||'';
+  }
+
+  // O valor-base vem do contrato. Isso impede que a online seja somada duas vezes
+  // quando a comissão do mesmo rodeio é editada novamente.
+  const abaC=obterAbaContratos_();
+  const vc=abaC.getDataRange().getValues();
+  for(let i=1;i<vc.length;i++){
+    if(String(vc[i][1]||'').trim()!==idRNorm)continue;
+    idContrato=vc[i][0];
+    base=numeroFinanceiro_(vc[i][23]);
+    cliente=vc[i][2]||cliente;
+    nomeRodeio=vc[i][11]||nomeRodeio;
+    vencimento=vc[i][26]||vencimento;
+    break;
+  }
+
+  const faturamento=Math.round((base+online)*100)/100;
+  const liquido=Math.max(0,Math.round((faturamento-(descontada?comissao:0))*100)/100);
+  const saldo=Math.round((liquido-recebido)*100)/100;
+  const status=statusFinanceiro_(liquido,recebido);
+
+  if(linha<0){
+    idFinanceiro=proximoIdGenerico_(abaF);
+    abaF.appendRow([idFinanceiro,idContrato,idRNorm,cliente,nomeRodeio,faturamento,comissao,descontada,liquido,recebido,saldo,status,converterData(vencimento),new Date(),Session.getActiveUser().getEmail()||'SISTEMA']);
+  }else{
+    abaF.getRange(linha,2,1,11).setValues([[idContrato,idRNorm,cliente,nomeRodeio,faturamento,comissao,descontada,liquido,recebido,saldo,status]]);
+    if(vencimento)abaF.getRange(linha,13).setValue(converterData(vencimento));
+  }
+  SpreadsheetApp.flush();
+  limparCacheDados_('financeiro');
+  return {idFinanceiro:idFinanceiro,idRodeio:idRNorm,faturamento:faturamento,comissao:comissao,recebido:recebido,saldo:saldo,statusFinanceiro:status};
+}
+
 function saldoComissao_(linha){
   const valor=numeroFinanceiro_(linha[4])+numeroFinanceiro_(linha[15]);
   const pagoInformado=numeroFinanceiro_(linha[13]);
