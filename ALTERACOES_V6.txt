@@ -1,0 +1,1 @@
+Corrigido erro de JavaScript na tela de Comissões que impedia o carregamento dos scripts, fazendo o botão Enter do login não responder. Renomeada variável duplicada em atualizarCamposComissao().
