@@ -1281,7 +1281,7 @@ function excluirParceiro(id){try{const a=obterAbaParceiros_(),v=a.getDataRange()
 // =====================================================
 // COMISSÕES
 // =====================================================
-const CABECALHO_COMISSOES=['ID','ID_RODEIO','RODEIO','PARCEIRO','VALOR_COMISSAO','OBSERVACOES','SITUACAO','PAGA','DATA_PAGAMENTO','FORMA_PAGAMENTO','OBS_PAGAMENTO','DATA_CADASTRO','USUARIO_CADASTRO','VALOR_PAGO'];
+const CABECALHO_COMISSOES=['ID','ID_RODEIO','RODEIO','PARCEIRO','VALOR_COMISSAO','OBSERVACOES','SITUACAO','PAGA','DATA_PAGAMENTO','FORMA_PAGAMENTO','OBS_PAGAMENTO','DATA_CADASTRO','USUARIO_CADASTRO','VALOR_PAGO','VALOR_ONLINE','COMISSAO_ONLINE'];
 function obterAbaComissoes_(){
   const p=SpreadsheetApp.openById(ID_PLANILHA); let a=p.getSheetByName(ABA_COMISSOES); if(!a)a=p.insertSheet(ABA_COMISSOES);
   const h=a.getRange(1,1,1,Math.max(1,a.getMaxColumns())).getValues()[0].map(v=>String(v||'').trim());
@@ -1322,15 +1322,15 @@ function listarComissoes(){
       const idR=String(v[i][1]||''),r=map[idR]||{},finR=finMap[idR]||{};
       const paga=v[i][7]===true||String(v[i][7]).toUpperCase()==='TRUE'||String(v[i][7]).toUpperCase()==='SIM';
       const comissaoDescontada=Object.prototype.hasOwnProperty.call(finR,'comissaoDescontada')?!!finR.comissaoDescontada:null;
-      const valor=numeroFinanceiro_(v[i][4]); const valorPagoBruto=numeroFinanceiro_(v[i][13]); const valorPago=(valorPagoBruto>0?Math.min(valorPagoBruto,valor):(paga?valor:0)); const saldo=Math.max(0,valor-valorPago); d.push({id:v[i][0],idRodeio:v[i][1]||'',nomeRodeio:v[i][2]||r.nomeEvento||'',parceiro:v[i][3]||'',valor:valor,valorPago:valorPago,saldo:saldo,observacoes:v[i][5]||'',situacao:String(v[i][6]||'COM_COMISSAO').trim().toUpperCase(),paga:paga,dataPagamento:v[i][8]?formatarDataPagamento_(v[i][8]):'',formaPagamento:v[i][9]||'',obsPagamento:v[i][10]||'',comissaoDescontada:comissaoDescontada,dataCadastro:formatarDataHora(v[i][11]),dataInicio:r.dataInicio||'',dataFim:r.dataFim||'',cidade:r.cidade||'',estado:r.estado||''});
+      const valor=numeroFinanceiro_(v[i][4]); const valorOnline=numeroFinanceiro_(v[i][14]); const comissaoOnline=numeroFinanceiro_(v[i][15]); const valorTotalComissao=valor+comissaoOnline; const valorPagoBruto=numeroFinanceiro_(v[i][13]); const valorPago=(valorPagoBruto>0?Math.min(valorPagoBruto,valorTotalComissao):(paga?valorTotalComissao:0)); const saldo=Math.max(0,valorTotalComissao-valorPago); d.push({id:v[i][0],idRodeio:v[i][1]||'',nomeRodeio:v[i][2]||r.nomeEvento||'',parceiro:v[i][3]||'',valor:valor,valorOnline:valorOnline,comissaoOnline:comissaoOnline,valorTotalComissao:valorTotalComissao,valorPago:valorPago,saldo:saldo,observacoes:v[i][5]||'',situacao:String(v[i][6]||'COM_COMISSAO').trim().toUpperCase(),paga:paga,dataPagamento:v[i][8]?formatarDataPagamento_(v[i][8]):'',formaPagamento:v[i][9]||'',obsPagamento:v[i][10]||'',comissaoDescontada:comissaoDescontada,dataCadastro:formatarDataHora(v[i][11]),dataInicio:r.dataInicio||'',dataFim:r.dataFim||'',cidade:r.cidade||'',estado:r.estado||''});
     }
     return{sucesso:true,dados:d};
   }catch(e){return{sucesso:false,mensagem:'Erro ao listar comissões: '+e.message,dados:[]};}
 }
 function formatarDataPagamento_(v){try{if(v instanceof Date)return Utilities.formatDate(v,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy');const s=String(v||'');if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0];}return s;}catch(e){return String(v||'');}}
-function cadastrarComissao(d){try{const idR=String(d.idRodeio||'').trim(),sit=String(d.situacao||'COM_COMISSAO').trim().toUpperCase(),par=valorTexto_(d.parceiro),val=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.valor),obs=valorTexto_(d.observacoes);if(!idR)return{sucesso:false,mensagem:'Selecione o rodeio.'};if(!['COM_COMISSAO','SEM_COMISSIONAMENTO','PENDENTE'].includes(sit))return{sucesso:false,mensagem:'Situação inválida.'};if(sit==='COM_COMISSAO'&&!par)return{sucesso:false,mensagem:'Informe o parceiro.'};if(sit==='COM_COMISSAO'&&val<=0)return{sucesso:false,mensagem:'Informe o valor da comissão.'};if(sit==='SEM_COMISSIONAMENTO'&&!obs)return{sucesso:false,mensagem:'Informe a justificativa do sem comissionamento.'};const a=obterAbaComissoes_(),v=a.getDataRange().getValues();let linha=-1,id='',paga=false,dataPag='',formaPag='',obsPag='',valorPagoExistente=0;for(let i=1;i<v.length;i++)if(String(v[i][1])===idR){linha=i+1;id=v[i][0];paga=v[i][7]===true||String(v[i][7]).toUpperCase()==='TRUE';dataPag=v[i][8]||'';formaPag=v[i][9]||'';obsPag=v[i][10]||'';valorPagoExistente=numeroFinanceiro_(v[i][13]);break;}const r=(listarRodeios().dados||[]).find(x=>String(x.id)===idR);if(!r)return{sucesso:false,mensagem:'Rodeio não encontrado.'};const valorPagoFinal=valorPagoExistente>0?Math.min(valorPagoExistente,val):(paga?val:0); const ld=[id||proximoIdGenerico_(a),idR,r.nomeEvento||'',sit==='SEM_COMISSIONAMENTO'?'':par,val,obs,sit,paga,dataPag,formaPag,obsPag,new Date(),Session.getActiveUser().getEmail()||'SISTEMA',valorPagoFinal];if(linha<0)a.appendRow(ld);else a.getRange(linha,1,1,CABECALHO_COMISSOES.length).setValues([ld]);const financeiro=sincronizarFinanceiroPorRodeio_(idR);marcarVersaoComissoes_();limparCacheDados_('comissoes');limparCacheDados_('financeiro');return{sucesso:true,mensagem:'Definição salva com sucesso.',id:ld[0],financeiro:financeiro};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar comissão: '+e.message};}}
+function cadastrarComissao(d){try{const idR=String(d.idRodeio||'').trim(),sit=String(d.situacao||'COM_COMISSAO').trim().toUpperCase(),par=valorTexto_(d.parceiro),val=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.valor),valorOnline=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.valorOnline),comissaoOnline=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.comissaoOnline),obs=valorTexto_(d.observacoes);if(!idR)return{sucesso:false,mensagem:'Selecione o rodeio.'};if(!['COM_COMISSAO','SEM_COMISSIONAMENTO','PENDENTE'].includes(sit))return{sucesso:false,mensagem:'Situação inválida.'};if(sit==='COM_COMISSAO'&&!par)return{sucesso:false,mensagem:'Informe o parceiro.'};if(sit==='COM_COMISSAO'&&val<=0&&comissaoOnline<=0)return{sucesso:false,mensagem:'Informe o valor da comissão ou da comissão da online.'};if(sit==='SEM_COMISSIONAMENTO'&&!obs)return{sucesso:false,mensagem:'Informe a justificativa do sem comissionamento.'};const a=obterAbaComissoes_(),v=a.getDataRange().getValues();let linha=-1,id='',paga=false,dataPag='',formaPag='',obsPag='',valorPagoExistente=0;for(let i=1;i<v.length;i++)if(String(v[i][1])===idR){linha=i+1;id=v[i][0];paga=v[i][7]===true||String(v[i][7]).toUpperCase()==='TRUE';dataPag=v[i][8]||'';formaPag=v[i][9]||'';obsPag=v[i][10]||'';valorPagoExistente=numeroFinanceiro_(v[i][13]);break;}const r=(listarRodeios().dados||[]).find(x=>String(x.id)===idR);if(!r)return{sucesso:false,mensagem:'Rodeio não encontrado.'};const valorTotalComissao=val+comissaoOnline; const valorPagoFinal=valorPagoExistente>0?Math.min(valorPagoExistente,valorTotalComissao):(paga?valorTotalComissao:0); const ld=[id||proximoIdGenerico_(a),idR,r.nomeEvento||'',sit==='SEM_COMISSIONAMENTO'?'':par,val,obs,sit,paga,dataPag,formaPag,obsPag,new Date(),Session.getActiveUser().getEmail()||'SISTEMA',valorPagoFinal,valorOnline,comissaoOnline];if(linha<0)a.appendRow(ld);else a.getRange(linha,1,1,CABECALHO_COMISSOES.length).setValues([ld]);const financeiro=sincronizarFinanceiroPorRodeio_(idR);marcarVersaoComissoes_();limparCacheDados_('comissoes');limparCacheDados_('financeiro');return{sucesso:true,mensagem:'Definição salva com sucesso.',id:ld[0],financeiro:financeiro};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar comissão: '+e.message};}}
 function saldoComissao_(linha){
-  const valor=numeroFinanceiro_(linha[4]);
+  const valor=numeroFinanceiro_(linha[4])+numeroFinanceiro_(linha[15]);
   const pagoInformado=numeroFinanceiro_(linha[13]);
   const paga=linha[7]===true||String(linha[7]).toUpperCase()==='TRUE'||String(linha[7]).toUpperCase()==='SIM';
   const pago=pagoInformado>0?Math.min(pagoInformado,valor):(paga?valor:0);
@@ -1401,14 +1401,24 @@ function baixarComissoesParceiro(d){
   }catch(e){return{sucesso:false,mensagem:'Erro na baixa agrupada: '+e.message};}
 }
 function excluirComissao(id){try{const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){const r=v[i][1];a.deleteRow(i+1);sincronizarFinanceiroPorRodeio_(r);marcarVersaoComissoes_();limparCacheDados_('comissoes');limparCacheDados_('financeiro');return{sucesso:true,mensagem:'Definição excluída com sucesso.'};}return{sucesso:false,mensagem:'Definição não encontrada.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir definição: '+e.message};}}
-function obterComissaoPorRodeio_(idR){const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][1])===String(idR))return String(v[i][6]||'COM_COMISSAO').toUpperCase()==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(v[i][4]);return 0;}
+function obterComissaoPorRodeio_(idR){const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][1])===String(idR)){if(String(v[i][6]||'COM_COMISSAO').toUpperCase()==='SEM_COMISSIONAMENTO')return 0;return numeroFinanceiro_(v[i][4])+numeroFinanceiro_(v[i][15]);}return 0;}
+function obterValorOnlinePorRodeio_(idR){const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][1])===String(idR)&&String(v[i][6]||'COM_COMISSAO').toUpperCase()!=='SEM_COMISSIONAMENTO')return numeroFinanceiro_(v[i][14]);return 0;}
 function sincronizarFinanceiroPorRodeio_(idR){
   const a=obterAbaFinanceiro_(),v=a.getDataRange().getValues();
   for(let i=1;i<v.length;i++){
     if(String(v[i][2])===String(idR)){
       const idFinanceiro=v[i][0];
+      // O FATURAMENTO do Financeiro passa a representar contrato + online gerada.
+      // Assim, alterar o valor da online atualiza imediatamente o total a receber.
+      try{
+        const contratos=listarContratos().dados||[];
+        const contrato=contratos.find(c=>String(c.id)===String(v[i][1]));
+        const base=contrato?numeroFinanceiro_(contrato.valorTotal):Math.max(0,numeroFinanceiro_(v[i][5])-obterValorOnlinePorRodeio_(idR));
+        const total=Math.round((base+obterValorOnlinePorRodeio_(idR))*100)/100;
+        a.getRange(i+1,6).setValue(total);
+      }catch(e){}
       const resumo=recalcularFinanceiro_(idFinanceiro)||{};
-      return {idFinanceiro:idFinanceiro,idRodeio:idR,comissao:resumo.comissao||0,comissaoDescontada:!!resumo.comissaoDescontada,faturamentoLiquido:resumo.faturamentoLiquido||0,recebido:resumo.recebido||0,saldo:resumo.saldo||0,statusFinanceiro:resumo.status||''};
+      return {idFinanceiro:idFinanceiro,idRodeio:idR,comissao:resumo.comissao||0,comissaoDescontada:!!resumo.comissaoDescontada,faturamento:resumo.faturamento||0,faturamentoLiquido:resumo.faturamentoLiquido||0,recebido:resumo.recebido||0,saldo:resumo.saldo||0,statusFinanceiro:resumo.status||''};
     }
   }
   return null;
@@ -1555,7 +1565,8 @@ function sincronizarFaturamentoContrato_(dados, idContrato) {
     if (String(valores[i][1]) === String(idContrato)) { linha=i+1; idFinanceiro=valores[i][0]; break; }
   }
   const usuario = Session.getActiveUser().getEmail() || 'SISTEMA';
-  const faturamento = numeroFinanceiro_(dados.valorTotal);
+  const faturamentoBase = numeroFinanceiro_(dados.valorTotal);
+  const faturamento = Math.round((faturamentoBase + obterValorOnlinePorRodeio_(dados.idRodeio))*100)/100;
   if (linha < 0) {
     idFinanceiro = proximoIdGenerico_(aba);
     const comissao = obterComissaoPorRodeio_(dados.idRodeio); const comissaoDescontada = false; const liquido = Math.max(0,faturamento-comissao); aba.appendRow([idFinanceiro,idContrato,valorTexto_(dados.idRodeio),valorTexto_(dados.cliente),valorTexto_(dados.nomeRodeio),faturamento,comissao,comissaoDescontada,liquido,0,liquido,'Não recebido',converterData(valorTexto_(dados.vencimento)),new Date(),usuario]);
@@ -1565,7 +1576,7 @@ function sincronizarFaturamentoContrato_(dados, idContrato) {
       abaR.appendRow([proximoIdGenerico_(abaR),idFinanceiro,idContrato,legado,new Date(),valorTexto_(dados.cliente),valorTexto_(dados.formaPagamento),'Valor recebido informado no contrato',new Date(),usuario]);
     }
   } else {
-    const comissao = obterComissaoPorRodeio_(dados.idRodeio); const chaveAtual = (valores[linha-1][7] === true || String(valores[linha-1][7]).toUpperCase() === 'TRUE' || String(valores[linha-1][7]).toUpperCase() === 'SIM'); const liquido = Math.max(0,faturamento-(chaveAtual?comissao:0)); aba.getRange(linha,2,1,8).setValues([[idContrato,valorTexto_(dados.idRodeio),valorTexto_(dados.cliente),valorTexto_(dados.nomeRodeio),faturamento,comissao,chaveAtual,liquido]]);
+    const comissao = obterComissaoPorRodeio_(dados.idRodeio); const valorOnline = obterValorOnlinePorRodeio_(dados.idRodeio); const faturamentoAtualizado = Math.round((faturamentoBase + valorOnline)*100)/100; const chaveAtual = (valores[linha-1][7] === true || String(valores[linha-1][7]).toUpperCase() === 'TRUE' || String(valores[linha-1][7]).toUpperCase() === 'SIM'); const liquido = Math.max(0,faturamentoAtualizado-(chaveAtual?comissao:0)); aba.getRange(linha,2,1,8).setValues([[idContrato,valorTexto_(dados.idRodeio),valorTexto_(dados.cliente),valorTexto_(dados.nomeRodeio),faturamentoAtualizado,comissao,chaveAtual,liquido]]);
     aba.getRange(linha,13).setValue(converterData(valorTexto_(dados.vencimento)));
   }
   recalcularFinanceiro_(idFinanceiro);
