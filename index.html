@@ -1538,13 +1538,13 @@ function gerarRelatorioComissoes(){
     const d=formatarDataISOFinanceiro(c.dataInicio||'');
     // As duas pontas são inclusivas: início <= data do rodeio <= fim.
     const periodo=(!inicio||!d||d>=inicio)&&(!fim||!d||d<=fim);
-    const st=status==='TODAS'||(status==='DESCONTADAS'&&c.comissaoDescontada===true)||(status==='APAGAR'&&c.paga!==true);
+    const st=status==='TODAS'||(status==='DESCONTADAS'&&c.comissaoDescontada===true)||(status==='APAGAR'&&c.comissaoDescontada!==true&&Number(c.saldo!=null?c.saldo:c.valor)>0);
     return p&&periodo&&st;
   }).sort((a,b)=>formatarDataISOFinanceiro(a.dataInicio||'').localeCompare(formatarDataISOFinanceiro(b.dataInicio||'')));
   if(!dados.length){alert('Nenhuma comissão encontrada para os filtros selecionados.');return;}
 
   const descontadas=dados.filter(c=>c.comissaoDescontada===true);
-  const pagas=dados.filter(c=>c.paga===true);
+  const pagas=dados.filter(c=>Number(c.valorPago!=null?c.valorPago:0)>0);
   const aPagar=dados.filter(c=>c.comissaoDescontada!==true && c.paga!==true && Number(c.saldo!=null?c.saldo:c.valor)>0);
   const semFinanceiro=dados.filter(c=>c.comissaoDescontada===null && c.paga!==true);
   const total=dados.reduce((a,c)=>a+(Number(c.valor)||0),0);
@@ -1566,7 +1566,7 @@ function gerarRelatorioComissoes(){
     if(!lista.length){janela.document.write('<p>Nenhuma comissão nesta situação.</p>');return;}
     janela.document.write('<table><tr><th>Data</th><th>Rodeio</th><th>Cidade</th><th>Parceiro</th><th>Motivo / observação</th><th>Situação</th>'+ (mostrarPagamento?'<th>Pagamento</th>':'') +'<th class="right">Comissão</th></tr>');
     lista.forEach(c=>{
-      const sit=mostrarPagamento?'COMISSÃO PAGA':(c.comissaoDescontada===true?'DESCONTADA DO FATURAMENTO':'A PAGAR AO PARCEIRO');
+      const sit=mostrarPagamento?(Number(c.saldo||0)>0?'COMISSÃO PAGA PARCIALMENTE':'COMISSÃO PAGA'): (c.comissaoDescontada===true?'DESCONTADA DO FATURAMENTO':'A PAGAR AO PARCEIRO');
       const pagamento=mostrarPagamento?((c.dataPagamento||'-')+'<br>'+escaparHTML(c.formaPagamento||'-')+(c.obsPagamento?'<br>'+escaparHTML(c.obsPagamento):'')):'';
       janela.document.write('<tr><td>'+escaparHTML(c.dataInicio||'-')+'</td><td>'+escaparHTML(c.nomeRodeio||'-')+'</td><td>'+escaparHTML([c.cidade,c.estado].filter(Boolean).join('/ ')||'-')+'</td><td>'+escaparHTML(c.parceiro||'-')+'</td><td>'+escaparHTML(c.observacoes||'-')+'</td><td class="status '+classe+'">'+sit+'</td>'+ (mostrarPagamento?'<td>'+pagamento+'</td>':'') +'<td class="right">'+formatarMoedaFinanceiro(titulo.indexOf('faltam pagar')>=0||titulo.indexOf('sem lançamento')>=0?(Number(c.saldo!=null?c.saldo:c.valor)||0):(mostrarPagamento?(Number(c.valorPago!=null?c.valorPago:c.valor)||0):(Number(c.valor)||0)))+'</td></tr>');
     });
