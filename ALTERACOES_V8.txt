@@ -1,0 +1,8 @@
+CORREÇÃO V8 – COMISSÃO ONLINE E REPASSE
+
+1. Corrigida a gravação da comissão online quando a comissão normal é R$ 0,00.
+2. Corrigido o campo VENDIDO_ONLINE no salvamento.
+3. Repasse ao contratante passa a atualizar automaticamente enquanto o usuário digita:
+   Repasse = Valor vendido pela online - Comissão da online.
+4. Aceita valores nos formatos brasileiros, inclusive 49.860,00 e 49.860.
+5. Mantidas as correções e funcionalidades das versões anteriores.

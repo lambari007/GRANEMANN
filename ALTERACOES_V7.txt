@@ -1,0 +1,13 @@
+VERSÃO 7 — CORREÇÃO DA COMISSÃO ONLINE
+
+1. Corrigido o salvamento do campo VENDIDO_ONLINE no Code.gs. A V6 recebia o valor pelo formulário, mas não criava a variável no servidor, causando erro ao salvar a comissão.
+
+2. O REPASSE AO CONTRATANTE agora é recalculado automaticamente enquanto o usuário digita:
+   Repasse = Valor vendido pela online - Comissão da online.
+
+3. O cálculo também é atualizado ao alterar o valor gerado pela online, mantendo a tela sincronizada.
+
+4. Mantida a lógica anterior:
+   - Valor gerado pela online soma ao faturamento do rodeio.
+   - Comissão normal + comissão da online compõem o total de comissão.
+   - Comissão normal pode ser R$ 0,00 quando existir comissão da online.

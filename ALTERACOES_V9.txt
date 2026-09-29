@@ -1,0 +1,6 @@
+V9 - CORREÇÃO DOS CAMPOS ONLINE
+
+1. Corrigido o encaminhamento dos campos VALOR_ONLINE, VENDIDO_ONLINE e COMISSAO_ONLINE no doGet/API para que o Code.gs receba os valores informados no formulário.
+2. Corrigido o cálculo do Repasse ao contratante para atualizar diretamente ao digitar o valor vendido e a comissão da online.
+3. Mantida a regra de permitir comissão normal R$ 0,00 quando houver comissão da online maior que zero.
+4. Exemplo: vendido R$ 49.860,00 e comissão online R$ 249,30 => repasse R$ 49.610,70.
