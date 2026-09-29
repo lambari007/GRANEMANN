@@ -1,0 +1,15 @@
+ALTERAÇÕES REALIZADAS
+
+1. Baixa parcial de comissões:
+   - A aba de baixa por parceiro agora permite informar um valor específico.
+   - O sistema registra VALOR_PAGO e calcula o SALDO restante.
+   - A baixa integral continua disponível.
+   - Baixas parciais são aplicadas às comissões pendentes pela ordem em que aparecem na aba.
+
+2. Comissões descontadas do faturamento:
+   - Comissões marcadas como "descontadas do faturamento" deixam de aparecer como valor a pagar ao parceiro.
+   - O relatório passa a calcular "A pagar ao parceiro" somente sobre o saldo efetivamente pendente.
+
+3. Relatório:
+   - Valores já pagos são considerados no total de "Pagas ao parceiro".
+   - Valores parcialmente pagos deixam somente o saldo restante como "A pagar".

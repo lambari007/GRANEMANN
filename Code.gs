@@ -228,8 +228,8 @@ function doGet(e) {
   }
 
   if (acao === 'excluircomissao') return respostaJSONP(excluirComissao(params.id), params.callback);
-  if (acao === 'baixarcomissao') return respostaJSONP(baixarComissao({id:params.id||'',dataPagamento:params.dataPagamento||'',formaPagamento:params.formaPagamento||'',obsPagamento:params.obsPagamento||''}), params.callback);
-  if (acao === 'baixarcomissoesparceiro') return respostaJSONP(baixarComissoesParceiro({parceiro:params.parceiro||'',dataPagamento:params.dataPagamento||'',formaPagamento:params.formaPagamento||'',obsPagamento:params.obsPagamento||''}), params.callback);
+  if (acao === 'baixarcomissao') return respostaJSONP(baixarComissao({id:params.id||'',dataPagamento:params.dataPagamento||'',formaPagamento:params.formaPagamento||'',obsPagamento:params.obsPagamento||'',valorBaixa:params.valorBaixa||''}), params.callback);
+  if (acao === 'baixarcomissoesparceiro') return respostaJSONP(baixarComissoesParceiro({parceiro:params.parceiro||'',dataPagamento:params.dataPagamento||'',formaPagamento:params.formaPagamento||'',obsPagamento:params.obsPagamento||'',valorBaixa:params.valorBaixa||''}), params.callback);
 
   if (acao === 'listarparceiros') return respostaJSONP(listarParceiros(), params.callback);
 
@@ -1281,7 +1281,7 @@ function excluirParceiro(id){try{const a=obterAbaParceiros_(),v=a.getDataRange()
 // =====================================================
 // COMISSÕES
 // =====================================================
-const CABECALHO_COMISSOES=['ID','ID_RODEIO','RODEIO','PARCEIRO','VALOR_COMISSAO','OBSERVACOES','SITUACAO','PAGA','DATA_PAGAMENTO','FORMA_PAGAMENTO','OBS_PAGAMENTO','DATA_CADASTRO','USUARIO_CADASTRO'];
+const CABECALHO_COMISSOES=['ID','ID_RODEIO','RODEIO','PARCEIRO','VALOR_COMISSAO','OBSERVACOES','SITUACAO','PAGA','DATA_PAGAMENTO','FORMA_PAGAMENTO','OBS_PAGAMENTO','DATA_CADASTRO','USUARIO_CADASTRO','VALOR_PAGO'];
 function obterAbaComissoes_(){
   const p=SpreadsheetApp.openById(ID_PLANILHA); let a=p.getSheetByName(ABA_COMISSOES); if(!a)a=p.insertSheet(ABA_COMISSOES);
   const h=a.getRange(1,1,1,Math.max(1,a.getMaxColumns())).getValues()[0].map(v=>String(v||'').trim());
@@ -1322,35 +1322,82 @@ function listarComissoes(){
       const idR=String(v[i][1]||''),r=map[idR]||{},finR=finMap[idR]||{};
       const paga=v[i][7]===true||String(v[i][7]).toUpperCase()==='TRUE'||String(v[i][7]).toUpperCase()==='SIM';
       const comissaoDescontada=Object.prototype.hasOwnProperty.call(finR,'comissaoDescontada')?!!finR.comissaoDescontada:null;
-      d.push({id:v[i][0],idRodeio:v[i][1]||'',nomeRodeio:v[i][2]||r.nomeEvento||'',parceiro:v[i][3]||'',valor:numeroFinanceiro_(v[i][4]),observacoes:v[i][5]||'',situacao:String(v[i][6]||'COM_COMISSAO').trim().toUpperCase(),paga:paga,dataPagamento:v[i][8]?formatarDataPagamento_(v[i][8]):'',formaPagamento:v[i][9]||'',obsPagamento:v[i][10]||'',comissaoDescontada:comissaoDescontada,dataCadastro:formatarDataHora(v[i][11]),dataInicio:r.dataInicio||'',dataFim:r.dataFim||'',cidade:r.cidade||'',estado:r.estado||''});
+      const valor=numeroFinanceiro_(v[i][4]); const valorPagoBruto=numeroFinanceiro_(v[i][13]); const valorPago=(valorPagoBruto>0?Math.min(valorPagoBruto,valor):(paga?valor:0)); const saldo=Math.max(0,valor-valorPago); d.push({id:v[i][0],idRodeio:v[i][1]||'',nomeRodeio:v[i][2]||r.nomeEvento||'',parceiro:v[i][3]||'',valor:valor,valorPago:valorPago,saldo:saldo,observacoes:v[i][5]||'',situacao:String(v[i][6]||'COM_COMISSAO').trim().toUpperCase(),paga:paga,dataPagamento:v[i][8]?formatarDataPagamento_(v[i][8]):'',formaPagamento:v[i][9]||'',obsPagamento:v[i][10]||'',comissaoDescontada:comissaoDescontada,dataCadastro:formatarDataHora(v[i][11]),dataInicio:r.dataInicio||'',dataFim:r.dataFim||'',cidade:r.cidade||'',estado:r.estado||''});
     }
     return{sucesso:true,dados:d};
   }catch(e){return{sucesso:false,mensagem:'Erro ao listar comissões: '+e.message,dados:[]};}
 }
 function formatarDataPagamento_(v){try{if(v instanceof Date)return Utilities.formatDate(v,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy');const s=String(v||'');if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0];}return s;}catch(e){return String(v||'');}}
-function cadastrarComissao(d){try{const idR=String(d.idRodeio||'').trim(),sit=String(d.situacao||'COM_COMISSAO').trim().toUpperCase(),par=valorTexto_(d.parceiro),val=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.valor),obs=valorTexto_(d.observacoes);if(!idR)return{sucesso:false,mensagem:'Selecione o rodeio.'};if(!['COM_COMISSAO','SEM_COMISSIONAMENTO','PENDENTE'].includes(sit))return{sucesso:false,mensagem:'Situação inválida.'};if(sit==='COM_COMISSAO'&&!par)return{sucesso:false,mensagem:'Informe o parceiro.'};if(sit==='COM_COMISSAO'&&val<=0)return{sucesso:false,mensagem:'Informe o valor da comissão.'};if(sit==='SEM_COMISSIONAMENTO'&&!obs)return{sucesso:false,mensagem:'Informe a justificativa do sem comissionamento.'};const a=obterAbaComissoes_(),v=a.getDataRange().getValues();let linha=-1,id='',paga=false,dataPag='',formaPag='',obsPag='';for(let i=1;i<v.length;i++)if(String(v[i][1])===idR){linha=i+1;id=v[i][0];paga=v[i][7]===true||String(v[i][7]).toUpperCase()==='TRUE';dataPag=v[i][8]||'';formaPag=v[i][9]||'';obsPag=v[i][10]||'';break;}const r=(listarRodeios().dados||[]).find(x=>String(x.id)===idR);if(!r)return{sucesso:false,mensagem:'Rodeio não encontrado.'};const ld=[id||proximoIdGenerico_(a),idR,r.nomeEvento||'',sit==='SEM_COMISSIONAMENTO'?'':par,val,obs,sit,paga,dataPag,formaPag,obsPag,new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];if(linha<0)a.appendRow(ld);else a.getRange(linha,1,1,CABECALHO_COMISSOES.length).setValues([ld]);const financeiro=sincronizarFinanceiroPorRodeio_(idR);marcarVersaoComissoes_();limparCacheDados_('comissoes');limparCacheDados_('financeiro');return{sucesso:true,mensagem:'Definição salva com sucesso.',id:ld[0],financeiro:financeiro};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar comissão: '+e.message};}}
-function baixarComissao(d){try{const id=String(d.id||'').trim(),data=String(d.dataPagamento||'').trim(),forma=valorTexto_(d.formaPagamento),obs=valorTexto_(d.obsPagamento);if(!id)return{sucesso:false,mensagem:'Comissão inválida.'};if(!data)return{sucesso:false,mensagem:'Informe a data do pagamento.'};if(!forma)return{sucesso:false,mensagem:'Informe como a comissão foi paga.'};const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===id){a.getRange(i+1,8,1,4).setValues([[true,converterData(data),forma,obs]]);marcarVersaoComissoes_();limparCacheDados_('comissoes');return{sucesso:true,mensagem:'Baixa da comissão registrada.'};}return{sucesso:false,mensagem:'Comissão não encontrada.'};}catch(e){return{sucesso:false,mensagem:'Erro ao dar baixa: '+e.message};}}
+function cadastrarComissao(d){try{const idR=String(d.idRodeio||'').trim(),sit=String(d.situacao||'COM_COMISSAO').trim().toUpperCase(),par=valorTexto_(d.parceiro),val=sit==='SEM_COMISSIONAMENTO'?0:numeroFinanceiro_(d.valor),obs=valorTexto_(d.observacoes);if(!idR)return{sucesso:false,mensagem:'Selecione o rodeio.'};if(!['COM_COMISSAO','SEM_COMISSIONAMENTO','PENDENTE'].includes(sit))return{sucesso:false,mensagem:'Situação inválida.'};if(sit==='COM_COMISSAO'&&!par)return{sucesso:false,mensagem:'Informe o parceiro.'};if(sit==='COM_COMISSAO'&&val<=0)return{sucesso:false,mensagem:'Informe o valor da comissão.'};if(sit==='SEM_COMISSIONAMENTO'&&!obs)return{sucesso:false,mensagem:'Informe a justificativa do sem comissionamento.'};const a=obterAbaComissoes_(),v=a.getDataRange().getValues();let linha=-1,id='',paga=false,dataPag='',formaPag='',obsPag='',valorPagoExistente=0;for(let i=1;i<v.length;i++)if(String(v[i][1])===idR){linha=i+1;id=v[i][0];paga=v[i][7]===true||String(v[i][7]).toUpperCase()==='TRUE';dataPag=v[i][8]||'';formaPag=v[i][9]||'';obsPag=v[i][10]||'';valorPagoExistente=numeroFinanceiro_(v[i][13]);break;}const r=(listarRodeios().dados||[]).find(x=>String(x.id)===idR);if(!r)return{sucesso:false,mensagem:'Rodeio não encontrado.'};const valorPagoFinal=valorPagoExistente>0?Math.min(valorPagoExistente,val):(paga?val:0); const ld=[id||proximoIdGenerico_(a),idR,r.nomeEvento||'',sit==='SEM_COMISSIONAMENTO'?'':par,val,obs,sit,paga,dataPag,formaPag,obsPag,new Date(),Session.getActiveUser().getEmail()||'SISTEMA',valorPagoFinal];if(linha<0)a.appendRow(ld);else a.getRange(linha,1,1,CABECALHO_COMISSOES.length).setValues([ld]);const financeiro=sincronizarFinanceiroPorRodeio_(idR);marcarVersaoComissoes_();limparCacheDados_('comissoes');limparCacheDados_('financeiro');return{sucesso:true,mensagem:'Definição salva com sucesso.',id:ld[0],financeiro:financeiro};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar comissão: '+e.message};}}
+function saldoComissao_(linha){
+  const valor=numeroFinanceiro_(linha[4]);
+  const pagoInformado=numeroFinanceiro_(linha[13]);
+  const paga=linha[7]===true||String(linha[7]).toUpperCase()==='TRUE'||String(linha[7]).toUpperCase()==='SIM';
+  const pago=pagoInformado>0?Math.min(pagoInformado,valor):(paga?valor:0);
+  return {valor:valor,pago:pago,saldo:Math.max(0,valor-pago)};
+}
+function baixarComissao(d){
+  try{
+    const id=String(d.id||'').trim(),data=String(d.dataPagamento||'').trim(),forma=valorTexto_(d.formaPagamento),obs=valorTexto_(d.obsPagamento);
+    const valorBaixa=d.valorBaixa===''||d.valorBaixa==null?null:numeroFinanceiro_(d.valorBaixa);
+    if(!id)return{sucesso:false,mensagem:'Comissão inválida.'};
+    if(!data)return{sucesso:false,mensagem:'Informe a data do pagamento.'};
+    if(!forma)return{sucesso:false,mensagem:'Informe como a comissão foi paga.'};
+    if(valorBaixa!==null&&valorBaixa<=0)return{sucesso:false,mensagem:'Informe um valor de baixa maior que zero.'};
+    const a=obterAbaComissoes_(),v=a.getDataRange().getValues();
+    for(let i=1;i<v.length;i++)if(String(v[i][0])===id){
+      const s=saldoComissao_(v[i]);
+      if(s.saldo<=0)return{sucesso:false,mensagem:'Esta comissão já está totalmente baixada.'};
+      const baixa=valorBaixa===null?s.saldo:Math.min(valorBaixa,s.saldo);
+      const novoPago=s.pago+baixa;
+      const quitada=novoPago>=s.valor-0.005;
+      a.getRange(i+1,8,1,4).setValues([[quitada,converterData(data),forma,obs]]);
+      a.getRange(i+1,14).setValue(novoPago);
+      marcarVersaoComissoes_();limparCacheDados_('comissoes');
+      return{sucesso:true,mensagem:quitada?'Baixa integral da comissão registrada.':'Baixa parcial da comissão registrada.',valorBaixa:baixa,valorPago:novoPago,saldo:Math.max(0,s.valor-novoPago),quitada:quitada};
+    }
+    return{sucesso:false,mensagem:'Comissão não encontrada.'};
+  }catch(e){return{sucesso:false,mensagem:'Erro ao dar baixa: '+e.message};}
+}
 function baixarComissoesParceiro(d){
   try{
     const parceiro=valorTexto_(d.parceiro), data=String(d.dataPagamento||'').trim(), forma=valorTexto_(d.formaPagamento), obs=valorTexto_(d.obsPagamento);
+    const valorSolicitado=d.valorBaixa===''||d.valorBaixa==null?null:numeroFinanceiro_(d.valorBaixa);
     if(!parceiro)return{sucesso:false,mensagem:'Parceiro inválido.'};
     if(!data)return{sucesso:false,mensagem:'Informe a data do pagamento.'};
     if(!forma)return{sucesso:false,mensagem:'Informe como as comissões foram pagas.'};
-    const a=obterAbaComissoes_(), v=a.getDataRange().getValues();
-    let qtd=0,total=0;
+    if(valorSolicitado!==null&&valorSolicitado<=0)return{sucesso:false,mensagem:'Informe um valor de baixa maior que zero.'};
+    const a=obterAbaComissoes_(),v=a.getDataRange().getValues();
+    const pendentes=[];
     for(let i=1;i<v.length;i++){
       const p=String(v[i][3]||'').trim();
       const sit=String(v[i][6]||'COM_COMISSAO').trim().toUpperCase();
-      const paga=v[i][7]===true||String(v[i][7]).toUpperCase()==='TRUE'||String(v[i][7]).toUpperCase()==='SIM';
-      if(p===parceiro && sit==='COM_COMISSAO' && !paga){
-        const valor=numeroFinanceiro_(v[i][4]);
-        a.getRange(i+1,8,1,4).setValues([[true,converterData(data),forma,obs]]);
-        qtd++; total+=valor;
+      const descontada=String(v[i][7]||'').toUpperCase(); // placeholder; actual financeiro flag is added below from listarComissoes
+      if(p===parceiro&&sit==='COM_COMISSAO'){
+        const s=saldoComissao_(v[i]);
+        if(s.saldo>0) pendentes.push({linha:i+1,saldo:s.saldo,valor:s.valor,pago:s.pago});
       }
     }
-    if(!qtd)return{sucesso:false,mensagem:'Não há comissões pendentes para este parceiro.'};
-    marcarVersaoComissoes_(); limparCacheDados_('comissoes');
-    return{sucesso:true,mensagem:'Baixa agrupada registrada para '+qtd+' comissão(ões).',quantidade:qtd,total:total,parceiro:parceiro};
+    // Comissão já descontada do faturamento não entra no valor a pagar ao parceiro.
+    const lista=(listarComissoes().dados||[]).filter(c=>String(c.parceiro||'').trim()===parceiro&&String(c.situacao||'').toUpperCase()==='COM_COMISSAO'&&c.comissaoDescontada!==true&&Number(c.saldo||0)>0);
+    const porId={}; lista.forEach(c=>porId[String(c.id)]=c);
+    const aplicaveis=pendentes.filter(x=>porId[String(v[x.linha-1][0])]);
+    const totalPendente=aplicaveis.reduce((a,x)=>a+x.saldo,0);
+    if(totalPendente<=0)return{sucesso:false,mensagem:'Não há comissões pendentes para este parceiro.'};
+    const totalBaixa=valorSolicitado===null?totalPendente:Math.min(valorSolicitado,totalPendente);
+    let restante=totalBaixa,qtd=0;
+    // Aplica a baixa parcial nas comissões pela ordem em que aparecem na aba.
+    for(const item of aplicaveis){
+      if(restante<=0.005)break;
+      const baixa=Math.min(restante,item.saldo);
+      const novoPago=item.pago+baixa;
+      const quitada=novoPago>=item.valor-0.005;
+      a.getRange(item.linha,8,1,4).setValues([[quitada,converterData(data),forma,obs]]);
+      a.getRange(item.linha,14).setValue(novoPago);
+      restante-=baixa;qtd++;
+    }
+    marcarVersaoComissoes_();limparCacheDados_('comissoes');
+    return{sucesso:true,mensagem:valorSolicitado===null?'Baixa integral agrupada registrada.':'Baixa parcial agrupada registrada.',quantidade:qtd,total:totalBaixa,parceiro:parceiro,saldoRestante:Math.max(0,totalPendente-totalBaixa)};
   }catch(e){return{sucesso:false,mensagem:'Erro na baixa agrupada: '+e.message};}
 }
 function excluirComissao(id){try{const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){const r=v[i][1];a.deleteRow(i+1);sincronizarFinanceiroPorRodeio_(r);marcarVersaoComissoes_();limparCacheDados_('comissoes');limparCacheDados_('financeiro');return{sucesso:true,mensagem:'Definição excluída com sucesso.'};}return{sucesso:false,mensagem:'Definição não encontrada.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir definição: '+e.message};}}

@@ -1394,25 +1394,31 @@ function renderizarBaixasPorParceiro(){
   const el=document.getElementById('listaBaixasPorParceiro'); if(!el)return;
   const mapa={};
   (comissoesCache||[]).forEach(c=>{
-    const parceiro=String(c.parceiro||'').trim();
-    const sit=String(c.situacao||'').toUpperCase();
-    if(!parceiro || sit!=='COM_COMISSAO' || c.paga===true)return;
-    if(!mapa[parceiro])mapa[parceiro]={parceiro:parceiro,total:0,qtd:0};
-    mapa[parceiro].total+=(Number(c.valor)||0); mapa[parceiro].qtd++;
+    const parceiro=String(c.parceiro||'').trim(), sit=String(c.situacao||'').toUpperCase();
+    const saldo=Number(c.saldo!=null?c.saldo:(Number(c.valor)||0)-(Number(c.valorPago)||0))||0;
+    if(!parceiro || sit!=='COM_COMISSAO' || c.comissaoDescontada===true || saldo<=0.005)return;
+    if(!mapa[parceiro])mapa[parceiro]={parceiro,total:0,qtd:0};
+    mapa[parceiro].total+=saldo; mapa[parceiro].qtd++;
   });
   const grupos=Object.values(mapa).sort((a,b)=>a.parceiro.localeCompare(b.parceiro,'pt-BR'));
   if(!grupos.length){el.innerHTML='<p class="contratos-vazio" style="margin:0">Nenhuma comissão pendente de pagamento aos parceiros.</p>';return;}
-  el.innerHTML=grupos.map(g=>'<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 0;border-top:1px solid #e5e5e5"><div><strong>'+escaparHTML(g.parceiro)+'</strong><br><span style="color:#666">'+g.qtd+' comissão(ões) pendente(s) • <strong>'+formatarMoedaFinanceiro(g.total)+'</strong> a pagar</span></div><button type="button" data-parceiro="'+encodeURIComponent(g.parceiro)+'" onclick="baixarComissoesParceiroUI(decodeURIComponent(this.dataset.parceiro),'+g.total+')">💰 DAR BAIXA — '+formatarMoedaFinanceiro(g.total)+'</button></div>').join('');
+  el.innerHTML=grupos.map(g=>'<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 0;border-top:1px solid #e5e5e5"><div><strong>'+escaparHTML(g.parceiro)+'</strong><br><span style="color:#666">'+g.qtd+' comissão(ões) pendente(s) • <strong>'+formatarMoedaFinanceiro(g.total)+'</strong> a pagar</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-parceiro="'+encodeURIComponent(g.parceiro)+'" onclick="baixarComissoesParceiroUI(decodeURIComponent(this.dataset.parceiro),'+g.total+',false)">💰 BAIXA INTEGRAL — '+formatarMoedaFinanceiro(g.total)+'</button><button type="button" data-parceiro="'+encodeURIComponent(g.parceiro)+'" onclick="baixarComissoesParceiroUI(decodeURIComponent(this.dataset.parceiro),'+g.total+',true)" style="background:#555">BAIXA PARCIAL</button></div></div>').join('');
 }
-async function baixarComissoesParceiroUI(parceiro,total){
-  const msg='Parceiro: '+parceiro+'\nTotal pendente: '+formatarMoedaFinanceiro(total)+'\n\nIsso vai dar baixa em TODAS as comissões pendentes desse parceiro em um único pagamento.\n\nContinuar?';
-  if(!confirm(msg))return;
+async function baixarComissoesParceiroUI(parceiro,total,parcial){
+  let valorBaixa='';
+  if(parcial){
+    valorBaixa=prompt('Valor que deseja dar baixa para '+parceiro+'\nPendente: '+formatarMoedaFinanceiro(total)+':','');
+    if(valorBaixa===null||!String(valorBaixa).trim())return;
+    valorBaixa=String(valorBaixa).trim();
+  }else{
+    if(!confirm('Parceiro: '+parceiro+'\nTotal pendente: '+formatarMoedaFinanceiro(total)+'\n\nDar baixa integral em todas as comissões pendentes?'))return;
+  }
   const data=prompt('Data do pagamento (DD/MM/AAAA ou AAAA-MM-DD):',new Date().toISOString().slice(0,10)); if(!data)return;
   const forma=prompt('Como foi pago? (PIX, Dinheiro, Transferência, Cartão ou Outro):','PIX'); if(!forma)return;
-  const obs=prompt('Observação do pagamento (opcional):','Pagamento agrupado de '+formatarMoedaFinanceiro(total))||'';
-  const r=await chamarAPI('baixarcomissoesparceiro',{parceiro:parceiro,dataPagamento:data,formaPagamento:forma,obsPagamento:obs});
-  if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível registrar a baixa agrupada.');return;}
-  alert('Baixa registrada!\n'+r.quantidade+' comissão(ões) baixada(s).\nTotal: '+formatarMoedaFinanceiro(r.total));
+  const obs=prompt('Observação do pagamento (opcional):','')||'';
+  const r=await chamarAPI('baixarcomissoesparceiro',{parceiro:parceiro,valorBaixa:valorBaixa,dataPagamento:data,formaPagamento:forma,obsPagamento:obs});
+  if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível registrar a baixa.');return;}
+  alert('Baixa registrada!\nValor baixado: '+formatarMoedaFinanceiro(r.total)+'\nSaldo restante: '+formatarMoedaFinanceiro(r.saldoRestante||0));
   await carregarComissoes(true);
 }
 
@@ -1539,13 +1545,13 @@ function gerarRelatorioComissoes(){
 
   const descontadas=dados.filter(c=>c.comissaoDescontada===true);
   const pagas=dados.filter(c=>c.paga===true);
-  const aPagar=dados.filter(c=>c.paga!==true);
-  const semFinanceiro=dados.filter(c=>c.comissaoDescontada===null);
+  const aPagar=dados.filter(c=>c.comissaoDescontada!==true && c.paga!==true && Number(c.saldo!=null?c.saldo:c.valor)>0);
+  const semFinanceiro=dados.filter(c=>c.comissaoDescontada===null && c.paga!==true);
   const total=dados.reduce((a,c)=>a+(Number(c.valor)||0),0);
   const totalDescontadas=descontadas.reduce((a,c)=>a+(Number(c.valor)||0),0);
-  const totalPagas=pagas.reduce((a,c)=>a+(Number(c.valor)||0),0);
-  const totalAPagar=aPagar.reduce((a,c)=>a+(Number(c.valor)||0),0);
-  const totalSemFinanceiro=semFinanceiro.reduce((a,c)=>a+(Number(c.valor)||0),0);
+  const totalPagas=pagas.reduce((a,c)=>a+(Number(c.valorPago!=null?c.valorPago:c.valor)||0),0);
+  const totalAPagar=aPagar.reduce((a,c)=>a+(Number(c.saldo!=null?c.saldo:c.valor)||0),0);
+  const totalSemFinanceiro=semFinanceiro.reduce((a,c)=>a+(Number(c.saldo!=null?c.saldo:c.valor)||0),0);
 
   const janela=window.open('','_blank');
   if(!janela){alert('O navegador bloqueou o relatório. Permita pop-ups para este sistema.');return;}
@@ -1562,7 +1568,7 @@ function gerarRelatorioComissoes(){
     lista.forEach(c=>{
       const sit=mostrarPagamento?'COMISSÃO PAGA':(c.comissaoDescontada===true?'DESCONTADA DO FATURAMENTO':'A PAGAR AO PARCEIRO');
       const pagamento=mostrarPagamento?((c.dataPagamento||'-')+'<br>'+escaparHTML(c.formaPagamento||'-')+(c.obsPagamento?'<br>'+escaparHTML(c.obsPagamento):'')):'';
-      janela.document.write('<tr><td>'+escaparHTML(c.dataInicio||'-')+'</td><td>'+escaparHTML(c.nomeRodeio||'-')+'</td><td>'+escaparHTML([c.cidade,c.estado].filter(Boolean).join('/ ')||'-')+'</td><td>'+escaparHTML(c.parceiro||'-')+'</td><td>'+escaparHTML(c.observacoes||'-')+'</td><td class="status '+classe+'">'+sit+'</td>'+ (mostrarPagamento?'<td>'+pagamento+'</td>':'') +'<td class="right">'+formatarMoedaFinanceiro(c.valor)+'</td></tr>');
+      janela.document.write('<tr><td>'+escaparHTML(c.dataInicio||'-')+'</td><td>'+escaparHTML(c.nomeRodeio||'-')+'</td><td>'+escaparHTML([c.cidade,c.estado].filter(Boolean).join('/ ')||'-')+'</td><td>'+escaparHTML(c.parceiro||'-')+'</td><td>'+escaparHTML(c.observacoes||'-')+'</td><td class="status '+classe+'">'+sit+'</td>'+ (mostrarPagamento?'<td>'+pagamento+'</td>':'') +'<td class="right">'+formatarMoedaFinanceiro(titulo.indexOf('faltam pagar')>=0||titulo.indexOf('sem lançamento')>=0?(Number(c.saldo!=null?c.saldo:c.valor)||0):(mostrarPagamento?(Number(c.valorPago!=null?c.valorPago:c.valor)||0):(Number(c.valor)||0)))+'</td></tr>');
     });
     janela.document.write('<tr><th colspan="'+(mostrarPagamento?7:6)+'" class="right">TOTAL DA SEÇÃO</th><th class="right">'+formatarMoedaFinanceiro(totalSecao)+'</th></tr></table>');
   }
