@@ -557,7 +557,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
     <div class="acoes"><button type="button" onclick="gerarRelatorioComissoes()">📊 GERAR RELATÓRIO DE COMISSÕES</button><button type="button" class="btn-secundario" onclick="limparFiltrosRelatorioComissoes()">LIMPAR FILTROS</button></div>
   </div>
 </section>
-<section id="pagina-parceiros" class="pagina"><div class="card"><h2>👥 Cadastro de Parceiros</h2><p style="color:#666;margin:-10px 0 18px">Cadastre aqui os parceiros que poderão ser vinculados aos rodeios e às comissões.</p><form id="formParceiro"><input type="hidden" id="parceiroCadastroId"><div class="grid-form"><div class="campo campo-full"><label>Nome do parceiro</label><input id="parceiroNome" type="text" required placeholder="Nome completo ou empresa"></div><div class="campo"><label>Telefone</label><input id="parceiroTelefone" type="tel" placeholder="(49) 99999-9999"></div><div class="campo"><label>CPF/CNPJ</label><input id="parceiroDocumento" type="text"></div><div class="campo"><label>💰 Salário fixo mensal (R$)</label><input id="parceiroSalarioFixo" type="text" inputmode="decimal" placeholder="Ex.: 2.500,00"><small style="display:block;color:#777;margin-top:5px">Será somado às comissões do parceiro na tela de Comissões.</small></div><div class="campo campo-full"><label>Observações</label><textarea id="parceiroObservacoes" rows="3"></textarea></div></div><div class="acoes"><button type="submit">💾 SALVAR PARCEIRO</button><button type="button" class="btn-secundario" onclick="limparFormularioParceiro()">LIMPAR</button></div><div id="mensagemParceiro" style="margin-top:15px;font-weight:bold"></div></form></div><div class="card"><h3>📋 Parceiros cadastrados</h3><div id="listaParceiros" class="lista-contratos"><p class="contratos-vazio">Carregando parceiros...</p></div></div></section>
+<section id="pagina-parceiros" class="pagina"><div class="card"><h2>👥 Cadastro de Parceiros</h2><p style="color:#666;margin:-10px 0 18px">Cadastre aqui os parceiros que poderão ser vinculados aos rodeios e às comissões.</p><form id="formParceiro"><input type="hidden" id="parceiroCadastroId"><div class="grid-form"><div class="campo campo-full"><label>Nome do parceiro</label><input id="parceiroNome" type="text" required placeholder="Nome completo ou empresa"></div><div class="campo"><label>Telefone</label><input id="parceiroTelefone" type="tel" placeholder="(49) 99999-9999"></div><div class="campo"><label>CPF/CNPJ</label><input id="parceiroDocumento" type="text"></div><div class="campo" id="campoSalarioFixoParceiro"><label>💰 Salário fixo mensal (R$)</label><input id="parceiroSalarioFixo" type="text" inputmode="decimal" placeholder="Ex.: 2.500,00"><small style="display:block;color:#777;margin-top:5px">Será somado às comissões do parceiro na tela de Comissões.</small></div><div class="campo campo-full"><label>Observações</label><textarea id="parceiroObservacoes" rows="3"></textarea></div></div><div class="acoes"><button type="submit">💾 SALVAR PARCEIRO</button><button type="button" class="btn-secundario" onclick="limparFormularioParceiro()">LIMPAR</button></div><div id="mensagemParceiro" style="margin-top:15px;font-weight:bold"></div></form></div><div class="card"><h3>📋 Parceiros cadastrados</h3><div id="listaParceiros" class="lista-contratos"><p class="contratos-vazio">Carregando parceiros...</p></div></div></section>
 <section id="pagina-premiacoes" class="pagina"><div class="card"><h2>🏆 Premiações</h2><p>Esta página será construída na próxima etapa.</p></div></section>
 <section id="pagina-relatorios" class="pagina"><div class="card"><h2>📊 Relatórios</h2><p>Esta página será construída na próxima etapa.</p></div></section>
 <section id="pagina-agenda" class="pagina"><div class="card"><h2>📅 Agenda</h2><p>Esta página será construída na próxima etapa.</p></div></section>
@@ -689,6 +689,7 @@ botao.textContent='ENTRAR';
 function aplicarPermissoesUsuario(usuario){
   const nivel=String((usuario&&usuario.nivel)||'').trim().toUpperCase();
   const ehAdmin=['ADMIN','ADMINISTRADOR','ADMINISTRADOR(A)'].includes(nivel);
+  usuarioEhAdmin=ehAdmin;
   const permitidas=['inicio','rodeios','contratos','comissoes'];
   document.querySelectorAll('.menu button[onclick*="abrirPagina"]').forEach(function(btn){
     const m=btn.getAttribute('onclick').match(/abrirPagina\('([^']+)'/);
@@ -698,6 +699,8 @@ function aplicarPermissoesUsuario(usuario){
     btn.style.display=permitidas.includes(nome)?'':'none';
   });
   // Se for visualizador, começa sempre em Início.
+  const campoSalario=document.getElementById('campoSalarioFixoParceiro');
+  if(campoSalario)campoSalario.style.display=ehAdmin?'':'none';
   if(!ehAdmin){
     abrirPagina('inicio',document.querySelector('.menu button[onclick*="abrirPagina(\'inicio\'"]'));
   }
@@ -1386,11 +1389,12 @@ document.getElementById('formContrato').addEventListener('submit',async function
 });
 
 
+let usuarioEhAdmin=false;
 let comissoesCache=[];
 let salariosPendentesCache=[];
 let carregandoComissoes=false;
 let assinaturaComissoes='';
-async function carregarComissoes(forcar=false, silenciosa=false){const l=document.getElementById('listaComissoes');if(!l)return;if(carregandoComissoes)return;if(!forcar&&comissoesCache.length){preencherOpcoesComissao();renderizarComissoes();return;}carregandoComissoes=true;try{if(!silenciosa)l.innerHTML='<p class="contratos-vazio">Carregando comissões...</p>';if(!rodeiosCache.length)await carregarRodeios();if(!parceirosCache.length)await carregarParceiros();const r=await chamarAPI('listarcomissoes');if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');const rs=await chamarAPI('listarsalariospendentes');salariosPendentesCache=(rs&&rs.sucesso)?(rs.dados||[]):[];const novos=r.dados||[];const novaAssinatura=JSON.stringify(novos)+'|'+JSON.stringify(salariosPendentesCache);if(!silenciosa||novaAssinatura!==assinaturaComissoes){comissoesCache=novos;assinaturaComissoes=novaAssinatura;preencherOpcoesComissao();renderizarComissoes();}}catch(e){console.error(e);if(!silenciosa)l.innerHTML='<p class="erro">Não foi possível carregar as comissões.</p>';}finally{carregandoComissoes=false;}}
+async function carregarComissoes(forcar=false, silenciosa=false){const l=document.getElementById('listaComissoes');if(!l)return;if(carregandoComissoes)return;if(!forcar&&comissoesCache.length){preencherOpcoesComissao();renderizarComissoes();return;}carregandoComissoes=true;try{if(!silenciosa)l.innerHTML='<p class="contratos-vazio">Carregando comissões...</p>';if(!rodeiosCache.length)await carregarRodeios();if(!parceirosCache.length)await carregarParceiros();const r=await chamarAPI('listarcomissoes');if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');salariosPendentesCache=[]; if(usuarioEhAdmin){const rs=await chamarAPI('listarsalariospendentes');salariosPendentesCache=(rs&&rs.sucesso)?(rs.dados||[]):[];}const novos=r.dados||[];const novaAssinatura=JSON.stringify(novos)+'|'+JSON.stringify(salariosPendentesCache);if(!silenciosa||novaAssinatura!==assinaturaComissoes){comissoesCache=novos;assinaturaComissoes=novaAssinatura;preencherOpcoesComissao();renderizarComissoes();}}catch(e){console.error(e);if(!silenciosa)l.innerHTML='<p class="erro">Não foi possível carregar as comissões.</p>';}finally{carregandoComissoes=false;}}
 function preencherOpcoesComissao(){const sr=document.getElementById('comissaoRodeio'),sp=document.getElementById('comissaoParceiro');if(!sr||!sp)return;const ar=sr.value,ap=sp.value;sr.innerHTML='<option value="">Selecione o rodeio</option>'+rodeiosCache.map(r=>'<option value="'+escaparHTML(r.id)+'">'+escaparHTML(r.nomeEvento||('Rodeio #'+r.id))+' — '+escaparHTML(r.cidade||'')+'</option>').join('');const ps=(parceirosCache||[]).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));sp.innerHTML='<option value="">Selecione o parceiro</option>'+ps.map(p=>'<option value="'+escaparHTML(p.nome)+'">'+escaparHTML(p.nome)+'</option>').join('');if(ar)sr.value=ar;if(ap)sp.value=ap;}
 async function carregarParceiros(){try{const r=await chamarAPI('listarparceiros');if(!r||!r.sucesso)throw new Error((r&&r.mensagem)||'Falha');parceirosCache=r.dados||[];preencherParceirosRodeio();if(document.getElementById('comissaoParceiro'))preencherOpcoesComissao();preencherFiltroRelatorioComissoes();renderizarParceiros();}catch(e){console.error(e);}}
 function preencherParceirosRodeio(){const s=document.getElementById('parceiroRodeio');if(!s)return;const atual=document.getElementById('parceiroIdRodeio')?.value||s.value;s.innerHTML='<option value="">Selecione o parceiro</option>'+parceirosCache.map(p=>'<option value="'+escaparHTML(p.id)+'">'+escaparHTML(p.nome)+'</option>').join('');if(atual)s.value=atual;}
@@ -1450,14 +1454,14 @@ function renderizarBaixasPorParceiro(){
   el.innerHTML=grupos.map(g=>{
     const detalhes=[];
     if(g.qtd)detalhes.push(g.qtd+' comissão(ões) pendente(s): <strong>'+formatarMoedaFinanceiro(g.totalComissoes)+'</strong>');
-    if(g.salario>0)detalhes.push('Salário fixo: <strong>'+formatarMoedaFinanceiro(g.salario)+'</strong>');
+    if(usuarioEhAdmin&&g.salario>0)detalhes.push('Salário fixo: <strong>'+formatarMoedaFinanceiro(g.salario)+'</strong>');
     return '<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 0;border-top:1px solid #e5e5e5"><div><strong>'+escaparHTML(g.parceiro)+'</strong><br><span style="color:#666">'+detalhes.join(' • ')+'<br><strong style="color:#176b2c">Total a pagar: '+formatarMoedaFinanceiro(g.total)+'</strong></span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-parceiro="'+encodeURIComponent(g.parceiro)+'" onclick="baixarComissoesParceiroUI(decodeURIComponent(this.dataset.parceiro),'+g.total+',false)">💰 BAIXA INTEGRAL — '+formatarMoedaFinanceiro(g.total)+'</button><button type="button" data-parceiro="'+encodeURIComponent(g.parceiro)+'" onclick="baixarComissoesParceiroUI(decodeURIComponent(this.dataset.parceiro),'+g.total+',true)" style="background:#555">BAIXA PARCIAL</button></div></div>';
   }).join('');
 }
 async function baixarComissoesParceiroUI(parceiro,total,parcial){
   let valorBaixa='';
   if(parcial){
-    valorBaixa=prompt('Valor que deseja dar baixa para '+parceiro+'\nComissões + salário fixo pendentes: '+formatarMoedaFinanceiro(total)+':','');
+    valorBaixa=prompt('Valor que deseja dar baixa para '+parceiro+'\nComissões'+(usuarioEhAdmin?' + salário fixo':'')+' pendentes: '+formatarMoedaFinanceiro(total)+':','');
     if(valorBaixa===null||!String(valorBaixa).trim())return;
     valorBaixa=String(valorBaixa).trim();
   }else{
@@ -1466,7 +1470,7 @@ async function baixarComissoesParceiroUI(parceiro,total,parcial){
   const data=prompt('Data do pagamento (DD/MM/AAAA ou AAAA-MM-DD):',new Date().toISOString().slice(0,10)); if(!data)return;
   const forma=prompt('Como foi pago? (PIX, Dinheiro, Transferência, Cartão ou Outro):','PIX'); if(!forma)return;
   const obs=prompt('Observação do pagamento (opcional):','')||'';
-  const r=await chamarAPI('baixarcomissoesparceiro',{parceiro:parceiro,valorBaixa:valorBaixa,dataPagamento:data,formaPagamento:forma,obsPagamento:obs});
+  const r=await chamarAPI('baixarcomissoesparceiro',{parceiro:parceiro,valorBaixa:valorBaixa,dataPagamento:data,formaPagamento:forma,obsPagamento:obs,incluirSalario:usuarioEhAdmin?'true':'false'});
   if(!r||!r.sucesso){alert((r&&r.mensagem)||'Não foi possível registrar a baixa.');return;}
   alert('Baixa registrada!\nValor baixado: '+formatarMoedaFinanceiro(r.total)+'\nSaldo restante: '+formatarMoedaFinanceiro(r.saldoRestante||0));
   await carregarComissoes(true);
@@ -1604,13 +1608,29 @@ function gerarRelatorioComissoes(){
   const totalAPagar=aPagar.reduce((a,c)=>a+(Number(c.saldo!=null?c.saldo:c.valor)||0),0);
   const totalSemFinanceiro=semFinanceiro.reduce((a,c)=>a+(Number(c.saldo!=null?c.saldo:(c.valorTotalComissao!=null?c.valorTotalComissao:c.valor))||0),0);
 
+  // Salário fixo aparece no relatório somente para ADMIN. Como o cadastro é mensal,
+  // o relatório considera o salário mensal vigente no cadastro para o período selecionado.
+  const parceirosRelatorio=usuarioEhAdmin?(parceirosCache||[]):[];
+  const mesesRelatorio=(()=>{
+    const base=new Date();
+    let a=inicio?new Date(inicio+'T00:00:00'):new Date(base.getFullYear(),base.getMonth(),1);
+    let b=fim?new Date(fim+'T00:00:00'):new Date(a.getFullYear(),a.getMonth()+1,0);
+    if(isNaN(a.getTime())||isNaN(b.getTime()))return 1;
+    a=new Date(a.getFullYear(),a.getMonth(),1); b=new Date(b.getFullYear(),b.getMonth(),1);
+    return Math.max(1,(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth())+1);
+  })();
+  const parceirosFiltrados=parceiro?parceirosRelatorio.filter(p=>String(p.nome||'')===parceiro):parceirosRelatorio;
+  const salarioMensalRelatorio=parceirosFiltrados.reduce((a,p)=>a+(Number(p.salarioFixo)||0),0);
+  const totalSalariosRelatorio=salarioMensalRelatorio*mesesRelatorio;
+  const totalGeralRelatorio=totalAPagar+totalSalariosRelatorio;
+
   const janela=window.open('','_blank');
   if(!janela){alert('O navegador bloqueou o relatório. Permita pop-ups para este sistema.');return;}
   const periodo=(inicio||fim)?((inicio?formatarDataRelatorioFinanceiro(inicio):'Início aberto')+' a '+(fim?formatarDataRelatorioFinanceiro(fim):'Fim aberto')):'Todos os períodos';
   const filtroStatus=status==='TODAS'?'Todas as situações':status==='DESCONTADAS'?'Somente descontadas':'Somente a pagar';
   janela.document.write('<html><head><title>Relatório de Comissões</title><style>body{font-family:Arial,sans-serif;color:#222;padding:30px;max-width:1150px;margin:auto}h1{margin-bottom:4px}h2{margin-top:28px;border-bottom:2px solid #222;padding-bottom:7px}.sub{color:#666;margin-bottom:20px}.resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.box{border:1px solid #ccc;border-radius:8px;padding:12px}.box b{display:block;font-size:18px;margin-top:5px}.box.destaque{border-width:2px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px;vertical-align:top}th{background:#f2f2f2}.right{text-align:right}.status{font-weight:bold}.descontada{color:#176b2c}.paga{color:#176b2c}.pagar{color:#a33b00}.sem{color:#666}.rodape{margin-top:28px;font-size:11px;color:#777}@media print{body{padding:10px}.no-print{display:none}.resumo{grid-template-columns:repeat(4,1fr)}}</style></head><body>');
   janela.document.write('<button class="no-print" onclick="window.print()" style="padding:10px 16px;margin-bottom:15px">🖨️ Imprimir / Salvar PDF</button><h1>RELATÓRIO DE COMISSÕES</h1><div class="sub">Secretaria Granemann • Parceiro: '+escaparHTML(parceiro||'Todos')+' • Período: '+escaparHTML(periodo)+' • Filtro: '+escaparHTML(filtroStatus)+' • Gerado em '+new Date().toLocaleString('pt-BR')+'</div>');
-  janela.document.write('<div class="resumo"><div class="box">Total de comissões<b>'+formatarMoedaFinanceiro(total)+'</b></div><div class="box">Descontadas do faturamento<b class="descontada">'+formatarMoedaFinanceiro(totalDescontadas)+'</b></div><div class="box">Pagas ao parceiro<b class="paga">'+formatarMoedaFinanceiro(totalPagas)+'</b></div><div class="box destaque">A pagar ao parceiro<b class="pagar">'+formatarMoedaFinanceiro(totalAPagar)+'</b></div></div>');
+  janela.document.write('<div class="resumo"><div class="box">Total de comissões<b>'+formatarMoedaFinanceiro(total)+'</b></div><div class="box">Descontadas do faturamento<b class="descontada">'+formatarMoedaFinanceiro(totalDescontadas)+'</b></div><div class="box">Pagas ao parceiro<b class="paga">'+formatarMoedaFinanceiro(totalPagas)+'</b></div><div class="box destaque">A pagar ao parceiro<b class="pagar">'+formatarMoedaFinanceiro(totalAPagar)+'</b></div>'+(usuarioEhAdmin?'<div class="box">Salário fixo ('+mesesRelatorio+' mês(es))<b>'+formatarMoedaFinanceiro(totalSalariosRelatorio)+'</b></div><div class="box destaque">Total comissões + salário<b class="pagar">'+formatarMoedaFinanceiro(totalGeralRelatorio)+'</b></div>':'')+'</div>');
 
   function tabela(titulo,lista,totalSecao,classe,mostrarPagamento){
     janela.document.write('<h2>'+titulo+' — '+formatarMoedaFinanceiro(totalSecao)+'</h2>');
@@ -1628,6 +1648,13 @@ function gerarRelatorioComissoes(){
   tabela('Comissões já pagas ao parceiro',pagas,totalPagas,'paga',true);
   tabela('Comissões que faltam pagar ao parceiro',aPagar,totalAPagar,'pagar',false);
   if(semFinanceiro.length) tabela('Comissões sem lançamento financeiro — conferir',semFinanceiro,totalSemFinanceiro,'sem',false);
+  if(usuarioEhAdmin){
+    janela.document.write('<h2>Resumo por parceiro — comissões + salário fixo</h2>');
+    janela.document.write('<table><tr><th>Parceiro</th><th class="right">Comissões do relatório</th><th class="right">Salário fixo mensal</th><th class="right">Salário no período</th><th class="right">Total</th></tr>');
+    const gruposRel={}; dados.forEach(c=>{const p=String(c.parceiro||'').trim()||'Sem parceiro'; if(!gruposRel[p])gruposRel[p]=0; gruposRel[p]+=Number(c.valorTotalComissao!=null?c.valorTotalComissao:((Number(c.valor)||0)+Number(c.comissaoOnline||0)))||0;});
+    Object.keys(gruposRel).sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(nome=>{const pp=parceirosRelatorio.find(p=>String(p.nome||'')===nome);const sal=Number(pp&&pp.salarioFixo||0);const salPeriodo=sal*mesesRelatorio;janela.document.write('<tr><td>'+escaparHTML(nome)+'</td><td class="right">'+formatarMoedaFinanceiro(gruposRel[nome])+'</td><td class="right">'+formatarMoedaFinanceiro(sal)+'</td><td class="right">'+formatarMoedaFinanceiro(salPeriodo)+'</td><td class="right"><strong>'+formatarMoedaFinanceiro(gruposRel[nome]+salPeriodo)+'</strong></td></tr>');});
+    janela.document.write('<tr><th colspan="4" class="right">TOTAL GERAL</th><th class="right">'+formatarMoedaFinanceiro(Object.values(gruposRel).reduce((a,b)=>a+b,0)+totalSalariosRelatorio)+'</th></tr></table>');
+  }
   janela.document.write('<div class="rodape">Regra: “Descontada do faturamento” indica que a comissão foi abatida do valor a receber do cliente. “Paga ao parceiro” indica que a baixa foi registrada na aba Comissões. Uma comissão pode estar descontada do cliente e também já paga ao parceiro.</div></body></html>');
   janela.document.close();
 }

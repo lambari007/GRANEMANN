@@ -53,7 +53,6 @@ function acaoPermitidaPorPerfil(acao, nivel) {
     'cadastrarcontrato',
     'editarcontrato',
     'listarcomissoes',
-    'listarsalariospendentes',
     'versao_comissoes',
     'cadastrarcomissao',
     'sincronizarfinanceiroonline',
@@ -235,9 +234,9 @@ function doGet(e) {
 
   if (acao === 'excluircomissao') return respostaJSONP(excluirComissao(params.id), params.callback);
   if (acao === 'baixarcomissao') return respostaJSONP(baixarComissao({id:params.id||'',dataPagamento:params.dataPagamento||'',formaPagamento:params.formaPagamento||'',obsPagamento:params.obsPagamento||'',valorBaixa:params.valorBaixa||''}), params.callback);
-  if (acao === 'baixarcomissoesparceiro') return respostaJSONP(baixarComissoesParceiro({parceiro:params.parceiro||'',dataPagamento:params.dataPagamento||'',formaPagamento:params.formaPagamento||'',obsPagamento:params.obsPagamento||'',valorBaixa:params.valorBaixa||''}), params.callback);
+  if (acao === 'baixarcomissoesparceiro') return respostaJSONP(baixarComissoesParceiro({parceiro:params.parceiro||'',dataPagamento:params.dataPagamento||'',formaPagamento:params.formaPagamento||'',obsPagamento:params.obsPagamento||'',valorBaixa:params.valorBaixa||'',incluirSalario:!!sessao && perfilEhAdmin(sessao.nivel)}), params.callback);
 
-  if (acao === 'listarparceiros') return respostaJSONP(listarParceiros(), params.callback);
+  if (acao === 'listarparceiros') return respostaJSONP(listarParceiros(!!sessao && perfilEhAdmin(sessao.nivel)), params.callback);
 
   if (acao === 'cadastrarparceiro') return respostaJSONP(cadastrarParceiro({id:params.id||'',nome:params.nome||'',telefone:params.telefone||'',documento:params.documento||'',observacoes:params.observacoes||'',salarioFixo:params.salarioFixo||''}), params.callback);
 
@@ -1295,10 +1294,10 @@ function obterAbaParceiros_(){
   a.getRange(1,1,1,CABECALHO_PARCEIROS.length).setValues([CABECALHO_PARCEIROS]);
   a.setFrozenRows(1); return a;
 }
-function listarParceiros(){try{
+function listarParceiros(incluirSalario){try{
   // Não usa cache aqui: o salário fixo precisa refletir imediatamente o cadastro atual.
   const a=obterAbaParceiros_(),v=a.getDataRange().getValues(),idxSal=obterIndiceColunaParceiro_(a,'SALARIO_FIXO'),d=[];
-  for(let i=1;i<v.length;i++){if(!v[i][0]||!v[i][1])continue;d.push({id:v[i][0],nome:v[i][1]||'',telefone:v[i][2]||'',documento:v[i][3]||'',observacoes:v[i][4]||'',salarioFixo:numeroFinanceiro_(v[i][idxSal>=0?idxSal:5])});}
+  for(let i=1;i<v.length;i++){if(!v[i][0]||!v[i][1])continue;d.push({id:v[i][0],nome:v[i][1]||'',telefone:v[i][2]||'',documento:v[i][3]||'',observacoes:v[i][4]||'',...(incluirSalario?{salarioFixo:numeroFinanceiro_(v[i][idxSal>=0?idxSal:5])}: {})});}
   salvarCacheDados_('parceiros',d,30);return{sucesso:true,dados:d};
 }catch(e){return{sucesso:false,mensagem:'Erro ao listar parceiros: '+e.message,dados:[]};}}
 function cadastrarParceiro(d){try{
@@ -1631,6 +1630,7 @@ function baixarComissao(d){
 }
 function baixarComissoesParceiro(d){
   try{
+    const incluirSalario=d.incluirSalario===true;
     const parceiro=valorTexto_(d.parceiro), data=String(d.dataPagamento||'').trim(), forma=valorTexto_(d.formaPagamento), obs=valorTexto_(d.obsPagamento);
     const valorSolicitado=d.valorBaixa===''||d.valorBaixa==null?null:numeroFinanceiro_(d.valorBaixa);
     if(!parceiro)return{sucesso:false,mensagem:'Parceiro inválido.'};
@@ -1650,7 +1650,7 @@ function baixarComissoesParceiro(d){
     const aplicaveis=pendentes.filter(x=>porId[String(v[x.linha-1][0])]);
     const totalComissoes=aplicaveis.reduce((a,x)=>a+x.saldo,0);
     const mes=mesAtualParceiro_();
-    const salarioInfo=obterSalarioPendenteParceiro_(parceiro,mes), salarioPendente=salarioInfo.valor||0;
+    const salarioInfo=incluirSalario?obterSalarioPendenteParceiro_(parceiro,mes):{valor:0}, salarioPendente=incluirSalario?(salarioInfo.valor||0):0;
     const totalPendente=totalComissoes+salarioPendente;
     if(totalPendente<=0.005)return{sucesso:false,mensagem:'Não há comissões ou salário fixo pendentes para este parceiro.'};
     const totalBaixa=valorSolicitado===null?totalPendente:Math.min(valorSolicitado,totalPendente);
