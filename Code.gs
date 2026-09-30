@@ -6,6 +6,7 @@ const ABA_RECEBIMENTOS = 'RECEBIMENTOS';
 const ABA_COMISSOES = 'COMISSOES';
 const ABA_PARCEIROS = 'PARCEIROS';
 const ABA_ACERTOS = 'ACERTOS';
+const ABA_SALARIOS_PARCEIROS = 'SALARIOS_PARCEIROS';
 const ID_PLANILHA = '1qlcBUZV9zBK8e1OvcxG8N7y-PVL7FwiPPML3T84liCc';
 
 
@@ -52,6 +53,7 @@ function acaoPermitidaPorPerfil(acao, nivel) {
     'cadastrarcontrato',
     'editarcontrato',
     'listarcomissoes',
+    'listarsalariospendentes',
     'versao_comissoes',
     'cadastrarcomissao',
     'sincronizarfinanceiroonline',
@@ -61,9 +63,6 @@ function acaoPermitidaPorPerfil(acao, nivel) {
     'alterarcomissaodescontada',
     // Necessário para selecionar parceiros dentro de Rodeios e Comissões.
     'listarparceiros',
-    'listaracertos',
-    'lancardebitoacerto',
-    'baixaracertoparceiro',
     'listarfinanceiro',
     'listarrecebimentos',
     'cadastrarrecebimento',
@@ -226,6 +225,7 @@ function doGet(e) {
   }
 
   if (acao === 'listarcomissoes') return respostaJSONP(listarComissoes(), params.callback);
+  if (acao === 'listarsalariospendentes') return respostaJSONP(listarSalariosPendentes(), params.callback);
   if (acao === 'versao_comissoes') return respostaJSONP({sucesso:true,versao:obterVersaoComissoes_()}, params.callback);
 
   if (acao === 'cadastrarcomissao') {
@@ -240,9 +240,6 @@ function doGet(e) {
   if (acao === 'listarparceiros') return respostaJSONP(listarParceiros(), params.callback);
 
   if (acao === 'cadastrarparceiro') return respostaJSONP(cadastrarParceiro({id:params.id||'',nome:params.nome||'',telefone:params.telefone||'',documento:params.documento||'',observacoes:params.observacoes||'',salarioFixo:params.salarioFixo||''}), params.callback);
-  if (acao === 'listaracertos') return respostaJSONP(listarAcertos(params.mes||''), params.callback);
-  if (acao === 'lancardebitoacerto') return respostaJSONP(lancarDebitoAcerto({parceiro:params.parceiro||'',mes:params.mes||'',descricao:params.descricao||'',valor:params.valor||''}), params.callback);
-  if (acao === 'baixaracertoparceiro') return respostaJSONP(baixarAcertoParceiro({parceiro:params.parceiro||'',mes:params.mes||'',dataPagamento:params.dataPagamento||'',formaPagamento:params.formaPagamento||'',obsPagamento:params.obsPagamento||''}), params.callback);
 
   if (acao === 'excluirparceiro') return respostaJSONP(excluirParceiro(params.id), params.callback);
 
@@ -1315,6 +1312,48 @@ function cadastrarParceiro(d){try{
 }catch(e){return{sucesso:false,mensagem:'Erro ao salvar parceiro: '+e.message};}}
 function excluirParceiro(id){try{const a=obterAbaParceiros_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){a.deleteRow(i+1);limparCacheDados_('parceiros');return{sucesso:true,mensagem:'Parceiro excluído com sucesso.'};}return{sucesso:false,mensagem:'Parceiro não encontrado.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir parceiro: '+e.message};}}
 
+function listarSalariosPendentes(){
+  try{
+    const mes=mesAtualParceiro_(), a=obterAbaSalariosParceiros_(), v=a.getDataRange().getValues();
+    const pagos={};
+    for(let i=1;i<v.length;i++) if(String(v[i][2]||'').slice(0,7)===mes) pagos[String(v[i][1]||'').trim()]=numeroFinanceiro_(v[i][4]);
+    const pAba=obterAbaParceiros_(), pv=pAba.getDataRange().getValues(), idxSal=obterIndiceColunaParceiro_(pAba,'SALARIO_FIXO'), dados=[];
+    for(let i=1;i<pv.length;i++){
+      const nome=String(pv[i][1]||'').trim(), fixo=numeroFinanceiro_(pv[i][idxSal>=0?idxSal:5]); if(!nome||fixo<=0)continue;
+      const pago=pagos[nome]||0, pendente=Math.max(0,fixo-pago); if(pendente>0.005)dados.push({parceiro:nome,salario:pendente,mes:mes});
+    }
+    return{sucesso:true,mes,dados};
+  }catch(e){return{sucesso:false,mensagem:'Erro ao listar salários pendentes: '+e.message,dados:[]};}
+}
+
+// =====================================================
+// SALÁRIO FIXO DOS PARCEIROS (controle interno para baixa junto às comissões)
+// =====================================================
+const CABECALHO_SALARIOS_PARCEIROS=['ID','PARCEIRO','MES_REF','VALOR','VALOR_PAGO','PAGO','DATA_PAGAMENTO','FORMA_PAGAMENTO','OBS_PAGAMENTO','DATA_CADASTRO'];
+function obterAbaSalariosParceiros_(){
+  const p=SpreadsheetApp.openById(ID_PLANILHA); let a=p.getSheetByName(ABA_SALARIOS_PARCEIROS);
+  if(!a)a=p.insertSheet(ABA_SALARIOS_PARCEIROS);
+  if(a.getMaxColumns()<CABECALHO_SALARIOS_PARCEIROS.length)a.insertColumnsAfter(a.getMaxColumns(),CABECALHO_SALARIOS_PARCEIROS.length-a.getMaxColumns());
+  a.getRange(1,1,1,CABECALHO_SALARIOS_PARCEIROS.length).setValues([CABECALHO_SALARIOS_PARCEIROS]); a.setFrozenRows(1); return a;
+}
+function mesAtualParceiro_(){return Utilities.formatDate(new Date(),Session.getScriptTimeZone()||'America/Sao_Paulo','yyyy-MM');}
+function obterSalarioPendenteParceiro_(parceiro,mes){
+  const nome=valorTexto_(parceiro), ref=String(mes||mesAtualParceiro_()).slice(0,7), pa=obterAbaParceiros_(), pv=pa.getDataRange().getValues(), idxSal=obterIndiceColunaParceiro_(pa,'SALARIO_FIXO');
+  let fixo=0; for(let i=1;i<pv.length;i++)if(String(pv[i][1]||'').trim()===nome){fixo=numeroFinanceiro_(pv[i][idxSal>=0?idxSal:5]);break;}
+  if(fixo<=0)return{valor:0,mes:ref,linha:0};
+  const a=obterAbaSalariosParceiros_(),v=a.getDataRange().getValues();
+  for(let i=1;i<v.length;i++)if(String(v[i][1]||'').trim()===nome&&String(v[i][2]||'').slice(0,7)===ref){
+    const pago=numeroFinanceiro_(v[i][4]); return{valor:Math.max(0,fixo-pago),mes:ref,linha:i+1,valorTotal:fixo,valorPago:pago};
+  }
+  return{valor:fixo,mes:ref,linha:0,valorTotal:fixo,valorPago:0};
+}
+function registrarBaixaSalarioParceiro_(parceiro,mes,valor,data,forma,obs){
+  if(valor<=0)return 0; const a=obterAbaSalariosParceiros_(),v=a.getDataRange().getValues(),ref=String(mes).slice(0,7); let linha=0,total=0,pagoAtual=0;
+  for(let i=1;i<v.length;i++)if(String(v[i][1]||'').trim()===parceiro&&String(v[i][2]||'').slice(0,7)===ref){linha=i+1;total=numeroFinanceiro_(v[i][3]);pagoAtual=numeroFinanceiro_(v[i][4]);break;}
+  if(!linha){const p=obterSalarioPendenteParceiro_(parceiro,ref);total=p.valorTotal||0;if(total<=0)return 0;linha=a.getLastRow()+1;a.getRange(linha,1,1,CABECALHO_SALARIOS_PARCEIROS.length).setValues([[proximoIdGenerico_(a),parceiro,ref,total,0,false,'','','',new Date()]]);}
+  const novo=Math.min(total,pagoAtual+valor),quitado=novo>=total-0.005;a.getRange(linha,5).setValue(novo);a.getRange(linha,6).setValue(quitado);a.getRange(linha,7,1,3).setValues([[converterData(data),forma,obs]]);return novo-pagoAtual;
+}
+
 // =====================================================
 // ACERTOS FINANCEIROS POR PARCEIRO
 // =====================================================
@@ -1596,39 +1635,35 @@ function baixarComissoesParceiro(d){
     const valorSolicitado=d.valorBaixa===''||d.valorBaixa==null?null:numeroFinanceiro_(d.valorBaixa);
     if(!parceiro)return{sucesso:false,mensagem:'Parceiro inválido.'};
     if(!data)return{sucesso:false,mensagem:'Informe a data do pagamento.'};
-    if(!forma)return{sucesso:false,mensagem:'Informe como as comissões foram pagas.'};
+    if(!forma)return{sucesso:false,mensagem:'Informe como o pagamento foi feito.'};
     if(valorSolicitado!==null&&valorSolicitado<=0)return{sucesso:false,mensagem:'Informe um valor de baixa maior que zero.'};
     const a=obterAbaComissoes_(),v=a.getDataRange().getValues();
     const pendentes=[];
     for(let i=1;i<v.length;i++){
-      const p=String(v[i][3]||'').trim();
-      const sit=String(v[i][6]||'COM_COMISSAO').trim().toUpperCase();
-      const descontada=String(v[i][7]||'').toUpperCase(); // placeholder; actual financeiro flag is added below from listarComissoes
+      const p=String(v[i][3]||'').trim(),sit=String(v[i][6]||'COM_COMISSAO').trim().toUpperCase();
       if(p===parceiro&&sit==='COM_COMISSAO'){
-        const s=saldoComissao_(v[i]);
-        if(s.saldo>0) pendentes.push({linha:i+1,saldo:s.saldo,valor:s.valor,pago:s.pago});
+        const s=saldoComissao_(v[i]); if(s.saldo>0)pendentes.push({linha:i+1,saldo:s.saldo,valor:s.valor,pago:s.pago});
       }
     }
-    // Comissão já descontada do faturamento não entra no valor a pagar ao parceiro.
     const lista=(listarComissoes().dados||[]).filter(c=>String(c.parceiro||'').trim()===parceiro&&String(c.situacao||'').toUpperCase()==='COM_COMISSAO'&&c.comissaoDescontada!==true&&Number(c.saldo||0)>0);
     const porId={}; lista.forEach(c=>porId[String(c.id)]=c);
     const aplicaveis=pendentes.filter(x=>porId[String(v[x.linha-1][0])]);
-    const totalPendente=aplicaveis.reduce((a,x)=>a+x.saldo,0);
-    if(totalPendente<=0)return{sucesso:false,mensagem:'Não há comissões pendentes para este parceiro.'};
+    const totalComissoes=aplicaveis.reduce((a,x)=>a+x.saldo,0);
+    const mes=mesAtualParceiro_();
+    const salarioInfo=obterSalarioPendenteParceiro_(parceiro,mes), salarioPendente=salarioInfo.valor||0;
+    const totalPendente=totalComissoes+salarioPendente;
+    if(totalPendente<=0.005)return{sucesso:false,mensagem:'Não há comissões ou salário fixo pendentes para este parceiro.'};
     const totalBaixa=valorSolicitado===null?totalPendente:Math.min(valorSolicitado,totalPendente);
-    let restante=totalBaixa,qtd=0;
-    // Aplica a baixa parcial nas comissões pela ordem em que aparecem na aba.
+    let restante=totalBaixa,qtd=0,baixaSalario=0;
+    // Primeiro quita as comissões; depois aplica o restante no salário fixo do mês.
     for(const item of aplicaveis){
       if(restante<=0.005)break;
-      const baixa=Math.min(restante,item.saldo);
-      const novoPago=item.pago+baixa;
-      const quitada=novoPago>=item.valor-0.005;
-      a.getRange(item.linha,8,1,4).setValues([[quitada,converterData(data),forma,obs]]);
-      a.getRange(item.linha,14).setValue(novoPago);
-      restante-=baixa;qtd++;
+      const baixa=Math.min(restante,item.saldo),novoPago=item.pago+baixa,quitada=novoPago>=item.valor-0.005;
+      a.getRange(item.linha,8,1,4).setValues([[quitada,converterData(data),forma,obs]]);a.getRange(item.linha,14).setValue(novoPago);restante-=baixa;qtd++;
     }
+    if(restante>0.005 && salarioPendente>0){baixaSalario=registrarBaixaSalarioParceiro_(parceiro,mes,Math.min(restante,salarioPendente),data,forma,obs);restante-=baixaSalario;}
     marcarVersaoComissoes_();limparCacheDados_('comissoes');
-    return{sucesso:true,mensagem:valorSolicitado===null?'Baixa integral agrupada registrada.':'Baixa parcial agrupada registrada.',quantidade:qtd,total:totalBaixa,parceiro:parceiro,saldoRestante:Math.max(0,totalPendente-totalBaixa)};
+    return{sucesso:true,mensagem:valorSolicitado===null?'Baixa integral de comissões + salário registrada.':'Baixa parcial registrada.',quantidade:qtd,total:totalBaixa,parceiro:parceiro,salarioBaixado:baixaSalario,saldoRestante:Math.max(0,totalPendente-totalBaixa)};
   }catch(e){return{sucesso:false,mensagem:'Erro na baixa agrupada: '+e.message};}
 }
 function excluirComissao(id){try{const a=obterAbaComissoes_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){const r=v[i][1];a.deleteRow(i+1);sincronizarFinanceiroPorRodeio_(r);marcarVersaoComissoes_();limparCacheDados_('comissoes');limparCacheDados_('financeiro');return{sucesso:true,mensagem:'Definição excluída com sucesso.'};}return{sucesso:false,mensagem:'Definição não encontrada.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir definição: '+e.message};}}
