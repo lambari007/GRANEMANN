@@ -5,6 +5,7 @@ const ABA_FINANCEIRO = 'FINANCEIRO';
 const ABA_RECEBIMENTOS = 'RECEBIMENTOS';
 const ABA_COMISSOES = 'COMISSOES';
 const ABA_PARCEIROS = 'PARCEIROS';
+const ABA_ACERTOS = 'ACERTOS';
 const ID_PLANILHA = '1qlcBUZV9zBK8e1OvcxG8N7y-PVL7FwiPPML3T84liCc';
 
 
@@ -60,6 +61,9 @@ function acaoPermitidaPorPerfil(acao, nivel) {
     'alterarcomissaodescontada',
     // Necessário para selecionar parceiros dentro de Rodeios e Comissões.
     'listarparceiros',
+    'listaracertos',
+    'lancardebitoacerto',
+    'baixaracertoparceiro',
     'listarfinanceiro',
     'listarrecebimentos',
     'cadastrarrecebimento',
@@ -235,7 +239,10 @@ function doGet(e) {
 
   if (acao === 'listarparceiros') return respostaJSONP(listarParceiros(), params.callback);
 
-  if (acao === 'cadastrarparceiro') return respostaJSONP(cadastrarParceiro({id:params.id||'',nome:params.nome||'',telefone:params.telefone||'',documento:params.documento||'',observacoes:params.observacoes||''}), params.callback);
+  if (acao === 'cadastrarparceiro') return respostaJSONP(cadastrarParceiro({id:params.id||'',nome:params.nome||'',telefone:params.telefone||'',documento:params.documento||'',observacoes:params.observacoes||'',salarioFixo:params.salarioFixo||''}), params.callback);
+  if (acao === 'listaracertos') return respostaJSONP(listarAcertos(params.mes||''), params.callback);
+  if (acao === 'lancardebitoacerto') return respostaJSONP(lancarDebitoAcerto({parceiro:params.parceiro||'',mes:params.mes||'',descricao:params.descricao||'',valor:params.valor||''}), params.callback);
+  if (acao === 'baixaracertoparceiro') return respostaJSONP(baixarAcertoParceiro({parceiro:params.parceiro||'',mes:params.mes||'',dataPagamento:params.dataPagamento||'',formaPagamento:params.formaPagamento||'',obsPagamento:params.obsPagamento||''}), params.callback);
 
   if (acao === 'excluirparceiro') return respostaJSONP(excluirParceiro(params.id), params.callback);
 
@@ -1267,18 +1274,30 @@ function editarContrato(dados) {
 // =====================================================
 // PARCEIROS
 // =====================================================
-const CABECALHO_PARCEIROS=['ID','NOME','TELEFONE','DOCUMENTO','OBSERVACOES','DATA_CADASTRO','USUARIO_CADASTRO'];
+const CABECALHO_PARCEIROS=['ID','NOME','TELEFONE','DOCUMENTO','OBSERVACOES','SALARIO_FIXO','DATA_CADASTRO','USUARIO_CADASTRO'];
 function obterAbaParceiros_(){
   const p=SpreadsheetApp.openById(ID_PLANILHA); let a=p.getSheetByName(ABA_PARCEIROS);
   if(!a)a=p.insertSheet(ABA_PARCEIROS);
   if(a.getMaxColumns()<CABECALHO_PARCEIROS.length)a.insertColumnsAfter(a.getMaxColumns(),CABECALHO_PARCEIROS.length-a.getMaxColumns());
-  const c=a.getRange(1,1,1,CABECALHO_PARCEIROS.length).getValues()[0];
-  if(CABECALHO_PARCEIROS.some((h,i)=>String(c[i]||'').trim()!==h))a.getRange(1,1,1,CABECALHO_PARCEIROS.length).setValues([CABECALHO_PARCEIROS]);
+  const h=a.getRange(1,1,1,Math.max(a.getLastColumn(),CABECALHO_PARCEIROS.length)).getValues()[0];
+  if(String(h[5]||'').trim()!=='SALARIO_FIXO'){ a.insertColumnAfter(5); }
+  a.getRange(1,1,1,CABECALHO_PARCEIROS.length).setValues([CABECALHO_PARCEIROS]);
   a.setFrozenRows(1); return a;
 }
-function listarParceiros(){try{const cache=obterCacheDados_('parceiros');if(cache)return{sucesso:true,dados:cache};const a=obterAbaParceiros_(),v=a.getDataRange().getValues(),d=[];for(let i=1;i<v.length;i++){if(!v[i][0]||!v[i][1])continue;d.push({id:v[i][0],nome:v[i][1]||'',telefone:v[i][2]||'',documento:v[i][3]||'',observacoes:v[i][4]||''});}salvarCacheDados_('parceiros',d,120);return{sucesso:true,dados:d};}catch(e){return{sucesso:false,mensagem:'Erro ao listar parceiros: '+e.message,dados:[]};}}
-function cadastrarParceiro(d){try{const nome=valorTexto_(d.nome);if(!nome)return{sucesso:false,mensagem:'Informe o nome do parceiro.'};const a=obterAbaParceiros_(),v=a.getDataRange().getValues();let linha=-1,id='';for(let i=1;i<v.length;i++)if(String(v[i][0])===String(d.id)){linha=i+1;id=v[i][0];break;}if(linha<0)id=proximoIdGenerico_(a);const row=[id,nome,valorTexto_(d.telefone),valorTexto_(d.documento),valorTexto_(d.observacoes),new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];if(linha<0)a.appendRow(row);else a.getRange(linha,1,1,CABECALHO_PARCEIROS.length).setValues([row]);limparCacheDados_('parceiros');return{sucesso:true,mensagem:'Parceiro salvo com sucesso.',id:id};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar parceiro: '+e.message};}}
+function listarParceiros(){try{const cache=obterCacheDados_('parceiros');if(cache)return{sucesso:true,dados:cache};const a=obterAbaParceiros_(),v=a.getDataRange().getValues(),d=[];for(let i=1;i<v.length;i++){if(!v[i][0]||!v[i][1])continue;d.push({id:v[i][0],nome:v[i][1]||'',telefone:v[i][2]||'',documento:v[i][3]||'',observacoes:v[i][4]||'',salarioFixo:numeroFinanceiro_(v[i][5])});}salvarCacheDados_('parceiros',d,120);return{sucesso:true,dados:d};}catch(e){return{sucesso:false,mensagem:'Erro ao listar parceiros: '+e.message,dados:[]};}}
+function cadastrarParceiro(d){try{const nome=valorTexto_(d.nome);if(!nome)return{sucesso:false,mensagem:'Informe o nome do parceiro.'};const salario=numeroFinanceiro_(d.salarioFixo);if(salario<0)return{sucesso:false,mensagem:'O salário fixo não pode ser negativo.'};const a=obterAbaParceiros_(),v=a.getDataRange().getValues();let linha=-1,id='';for(let i=1;i<v.length;i++)if(String(v[i][0])===String(d.id)){linha=i+1;id=v[i][0];break;}if(linha<0)id=proximoIdGenerico_(a);const row=[id,nome,valorTexto_(d.telefone),valorTexto_(d.documento),valorTexto_(d.observacoes),salario,new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];if(linha<0)a.appendRow(row);else a.getRange(linha,1,1,CABECALHO_PARCEIROS.length).setValues([row]);limparCacheDados_('parceiros');limparCacheDados_('acertos');return{sucesso:true,mensagem:'Parceiro salvo com sucesso.',id:id};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar parceiro: '+e.message};}}
 function excluirParceiro(id){try{const a=obterAbaParceiros_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){a.deleteRow(i+1);limparCacheDados_('parceiros');return{sucesso:true,mensagem:'Parceiro excluído com sucesso.'};}return{sucesso:false,mensagem:'Parceiro não encontrado.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir parceiro: '+e.message};}}
+
+// =====================================================
+// ACERTOS FINANCEIROS POR PARCEIRO
+// =====================================================
+const CABECALHO_ACERTOS=['ID','PARCEIRO','MES_REF','TIPO','DESCRICAO','VALOR','PAGO','DATA_PAGAMENTO','FORMA_PAGAMENTO','OBS_PAGAMENTO','DATA_CADASTRO','USUARIO_CADASTRO'];
+function obterAbaAcertos_(){const p=SpreadsheetApp.openById(ID_PLANILHA);let a=p.getSheetByName(ABA_ACERTOS);if(!a)a=p.insertSheet(ABA_ACERTOS);if(a.getMaxColumns()<CABECALHO_ACERTOS.length)a.insertColumnsAfter(a.getMaxColumns(),CABECALHO_ACERTOS.length-a.getMaxColumns());a.getRange(1,1,1,CABECALHO_ACERTOS.length).setValues([CABECALHO_ACERTOS]);a.setFrozenRows(1);return a;}
+function normalizarMesRef_(m){const x=String(m||'').trim();return /^\d{4}-\d{2}$/.test(x)?x:Utilities.formatDate(new Date(),Session.getScriptTimeZone(),'yyyy-MM');}
+function garantirSalariosAcerto_(mes){const a=obterAbaAcertos_(),v=a.getDataRange().getValues(),par=listarParceiros().dados||[],mesRef=normalizarMesRef_(mes),exist={};for(let i=1;i<v.length;i++)if(String(v[i][2]||'')===mesRef&&String(v[i][3]||'').toUpperCase()==='SALARIO')exist[String(v[i][1]||'').trim()]=true;par.forEach(p=>{const nome=String(p.nome||'').trim(),sal=numeroFinanceiro_(p.salarioFixo);if(nome&&sal>0&&!exist[nome])a.appendRow([proximoIdGenerico_(a),nome,mesRef,'SALARIO','Salário fixo '+mesRef,sal,false,'','','',new Date(),Session.getActiveUser().getEmail()||'SISTEMA']);});return a;}
+function listarAcertos(mes){try{const mesRef=normalizarMesRef_(mes);const a=garantirSalariosAcerto_(mesRef),v=a.getDataRange().getValues();const com=listarComissoes().dados||[];const grupos={};v.slice(1).forEach(r=>{if(String(r[2]||'')!==mesRef)return;const p=String(r[1]||'').trim();if(!p)return;if(!grupos[p])grupos[p]={parceiro:p,salario:0,outrosCreditos:0,debitos:0,comissoes:0,linhas:[]};const tipo=String(r[3]||'').toUpperCase(),val=numeroFinanceiro_(r[5]),pago=r[6]===true||String(r[6]).toUpperCase()==='TRUE';if(tipo==='SALARIO'){if(!pago){grupos[p].salario+=val;grupos[p].linhas.push({id:r[0],tipo:'SALARIO',valor:val,descricao:r[4]||''});}}else if(tipo==='DEBITO'){if(!pago){grupos[p].debitos+=val;grupos[p].linhas.push({id:r[0],tipo:'DEBITO',valor:val,descricao:r[4]||''});}}else if(tipo==='CREDITO'){if(!pago){grupos[p].outrosCreditos+=val;grupos[p].linhas.push({id:r[0],tipo:'CREDITO',valor:val,descricao:r[4]||''});}}});com.forEach(c=>{const p=String(c.parceiro||'').trim();if(!p||String(c.situacao||'').toUpperCase()!=='COM_COMISSAO'||c.comissaoDescontada===true)return;const di=String(c.dataInicio||'');const cm=/^\d{4}-\d{2}/.test(di)?di.slice(0,7):(/^\d{2}\/\d{2}\/\d{4}$/.test(di)?di.slice(6,10)+'-'+di.slice(3,5):'');if(cm!==mesRef)return;const saldo=Number(c.saldo||0);if(saldo<=0.005)return;if(!grupos[p])grupos[p]={parceiro:p,salario:0,outrosCreditos:0,debitos:0,comissoes:0,linhas:[]};grupos[p].comissoes+=saldo;grupos[p].linhas.push({id:c.id,tipo:'COMISSAO',valor:saldo,descricao:c.nomeRodeio||'Comissão'});});const dados=Object.values(grupos).map(g=>({...g,totalCreditos:g.salario+g.outrosCreditos+g.comissoes,saldoLiquido:Math.max(0,g.salario+g.outrosCreditos+g.comissoes-g.debitos)})).sort((a,b)=>a.parceiro.localeCompare(b.parceiro,'pt-BR'));return{sucesso:true,mes:mesRef,dados};}catch(e){return{sucesso:false,mensagem:'Erro ao listar acertos: '+e.message,dados:[]};}}
+function lancarDebitoAcerto(d){try{const parceiro=valorTexto_(d.parceiro),mes=normalizarMesRef_(d.mes),desc=valorTexto_(d.descricao),valor=numeroFinanceiro_(d.valor);if(!parceiro)return{sucesso:false,mensagem:'Informe o parceiro.'};if(!desc)return{sucesso:false,mensagem:'Informe a descrição do abatimento.'};if(valor<=0)return{sucesso:false,mensagem:'Informe um valor maior que zero.'};const a=obterAbaAcertos_();const id=proximoIdGenerico_(a);a.appendRow([id,parceiro,mes,'DEBITO',desc,valor,false,'','','',new Date(),Session.getActiveUser().getEmail()||'SISTEMA']);limparCacheDados_('acertos');return{sucesso:true,mensagem:'Abatimento lançado com sucesso.',id};}catch(e){return{sucesso:false,mensagem:'Erro ao lançar abatimento: '+e.message};}}
+function baixarAcertoParceiro(d){try{const parceiro=valorTexto_(d.parceiro),mes=normalizarMesRef_(d.mes),data=String(d.dataPagamento||'').trim(),forma=valorTexto_(d.formaPagamento),obs=valorTexto_(d.obsPagamento);if(!parceiro||!data||!forma)return{sucesso:false,mensagem:'Informe parceiro, data e forma de pagamento.'};const lista=listarAcertos(mes).dados||[],g=lista.find(x=>x.parceiro===parceiro);if(!g||g.saldoLiquido<=0.005)return{sucesso:false,mensagem:'Não há saldo líquido a pagar para este parceiro neste mês.'};const a=obterAbaAcertos_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++){if(String(v[i][1]||'').trim()!==parceiro||String(v[i][2]||'')!==mes)continue;const tipo=String(v[i][3]||'').toUpperCase();if(['SALARIO','CREDITO','DEBITO'].includes(tipo))a.getRange(i+1,7,1,4).setValues([[true,converterData(data),forma,obs]]);}const com=obterAbaComissoes_(),vc=com.getDataRange().getValues(),ids=new Set((g.linhas||[]).filter(x=>x.tipo==='COMISSAO').map(x=>String(x.id)));for(let i=1;i<vc.length;i++)if(ids.has(String(vc[i][0]))){const s=saldoComissao_(vc[i]);com.getRange(i+1,8,1,4).setValues([[true,converterData(data),forma,obs]]);com.getRange(i+1,14).setValue(s.valor);}marcarVersaoComissoes_();limparCacheDados_('comissoes');limparCacheDados_('acertos');return{sucesso:true,mensagem:'Acerto do parceiro baixado integralmente.',total:g.saldoLiquido,parceiro,mes};}catch(e){return{sucesso:false,mensagem:'Erro ao baixar acerto: '+e.message};}}
 
 // =====================================================
 // COMISSÕES
