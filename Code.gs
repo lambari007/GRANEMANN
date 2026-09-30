@@ -1687,6 +1687,9 @@ function numeroFinanceiro_(v) {
 function statusFinanceiro_(faturamento, recebido) {
   const f = Math.round(numeroFinanceiro_(faturamento)*100)/100;
   const r = Math.round(numeroFinanceiro_(recebido)*100)/100;
+  // Rodeios sem faturamento/recebimento não são inadimplentes:
+  // ficam verdes como "Rodeio sem financeiro".
+  if (Math.abs(f) < 0.009 && Math.abs(r) < 0.009) return 'Rodeio sem financeiro';
   if (r > f + 0.009) return 'Acima do faturamento';
   if (f > 0 && Math.abs(f-r) < 0.009) return 'Recebido integralmente';
   if (r > 0) return 'Recebimento parcial';

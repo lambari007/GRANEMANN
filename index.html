@@ -501,7 +501,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
     </div>
     <div class="financeiro-filtros">
       <div class="filtro-busca"><span>🔎</span><input type="search" id="buscaFinanceiro" placeholder="Rodeio, cliente ou cidade..." autocomplete="off" oninput="aplicarFiltrosFinanceiro()"></div>
-      <div class="filtro-status"><select id="filtroFinanceiro"><option value="Todos">📋 Todos</option><option value="Não recebido">🔴 Não recebido</option><option value="Recebimento parcial">🟡 Parcial</option><option value="Recebido integralmente">🟢 Integral</option><option value="Acima do faturamento">🟣 Acima do faturamento</option></select></div>
+      <div class="filtro-status"><select id="filtroFinanceiro"><option value="Todos">📋 Todos</option><option value="Não recebido">🔴 Não recebido</option><option value="Recebimento parcial">🟡 Parcial</option><option value="Recebido integralmente">🟢 Integral</option><option value="Rodeio sem financeiro">🟢 Sem financeiro</option><option value="Acima do faturamento">🟣 Acima do faturamento</option></select></div>
       <div class="filtro-status"><select id="filtroMesFinanceiro"><option value="Todos">📅 Todos os meses</option></select></div>
       <div class="filtro-status"><input type="date" id="filtroDataInicioFinanceiro" title="Data inicial"></div>
       <div class="filtro-status"><input type="date" id="filtroDataFimFinanceiro" title="Data final"></div>
@@ -1622,7 +1622,7 @@ function formatarMoedaFinanceiro(v){
   return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 }
 function classeFinanceiro(status){
-  if(status==='Recebido integralmente') return 'quitado';
+  if(status==='Recebido integralmente'||status==='Rodeio sem financeiro') return 'quitado';
   if(status==='Recebimento parcial') return 'parcial';
   if(status==='Acima do faturamento') return 'acima';
   return 'nao-recebido';
@@ -1784,7 +1784,7 @@ function renderizarFinanceiro(dados){
     const saldo=Math.max(0,Number(f.saldo)||0);
     const descontada = f.comissaoDescontada === true;
     const avisoComissao = Number(f.comissao||0)>0 ? ('<div style="margin:10px 0;padding:10px;border-radius:8px;background:#f5f5f5"><strong>Comissão: '+formatarMoedaFinanceiro(f.comissao||0)+'</strong> — '+(descontada?'DESCONTADA do valor a receber.':'<span style="font-weight:bold">NÃO DESCONTADA — fica a pagar ao parceiro.</span>')+'</div>') : '';
-    card.innerHTML='<span class="financeiro-status">'+(f.statusFinanceiro==='Não recebido'?'🔴 NÃO RECEBIDO':f.statusFinanceiro==='Recebimento parcial'?'🟡 PARCIAL':f.statusFinanceiro==='Recebido integralmente'?'🟢 RECEBIDO INTEGRALMENTE':'🟣 ACIMA DO FATURAMENTO')+'</span>'+
+    card.innerHTML='<span class="financeiro-status">'+(f.statusFinanceiro==='Não recebido'?'🔴 NÃO RECEBIDO':f.statusFinanceiro==='Recebimento parcial'?'🟡 PARCIAL':f.statusFinanceiro==='Recebido integralmente'?'🟢 RECEBIDO INTEGRALMENTE':f.statusFinanceiro==='Rodeio sem financeiro'?'🟢 RODEIO SEM FINANCEIRO':'🟣 ACIMA DO FATURAMENTO')+'</span>'+
       '<h3>'+escaparHTML(f.nomeRodeio||'Rodeio')+'</h3>'+
       '<div class="info"><strong>Cliente:</strong> '+escaparHTML(f.cliente||'-')+(f.dataRodeio?'<br><strong>Data do rodeio:</strong> '+escaparHTML(f.dataRodeio):'')+(f.cidade?'<br><strong>Cidade:</strong> '+escaparHTML(f.cidade):'')+(f.vencimento?'<br><strong>Vencimento:</strong> '+escaparHTML(f.vencimento):'')+'</div>'+avisoComissao+
       '<div style="display:flex;align-items:center;gap:10px;margin:10px 0;padding:10px;border:1px solid #ddd;border-radius:8px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" '+(descontada?'checked':'')+' onchange="alterarComissaoDescontadaUI('+f.id+',this.checked)" style="width:18px;height:18px"> <strong>Comissão descontada do pagamento do cliente</strong></label></div>'+
