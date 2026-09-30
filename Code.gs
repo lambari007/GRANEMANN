@@ -1275,17 +1275,44 @@ function editarContrato(dados) {
 // PARCEIROS
 // =====================================================
 const CABECALHO_PARCEIROS=['ID','NOME','TELEFONE','DOCUMENTO','OBSERVACOES','SALARIO_FIXO','DATA_CADASTRO','USUARIO_CADASTRO'];
+function normalizarCabecalhoParceiro_(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase().replace(/\s+/g,'_');}
+function obterIndiceColunaParceiro_(aba,nome){
+  const cab=aba.getRange(1,1,1,Math.max(aba.getLastColumn(),CABECALHO_PARCEIROS.length)).getValues()[0];
+  const alvo=normalizarCabecalhoParceiro_(nome);
+  for(let i=0;i<cab.length;i++) if(normalizarCabecalhoParceiro_(cab[i])===alvo) return i;
+  return -1;
+}
 function obterAbaParceiros_(){
   const p=SpreadsheetApp.openById(ID_PLANILHA); let a=p.getSheetByName(ABA_PARCEIROS);
   if(!a)a=p.insertSheet(ABA_PARCEIROS);
   if(a.getMaxColumns()<CABECALHO_PARCEIROS.length)a.insertColumnsAfter(a.getMaxColumns(),CABECALHO_PARCEIROS.length-a.getMaxColumns());
-  const h=a.getRange(1,1,1,Math.max(a.getLastColumn(),CABECALHO_PARCEIROS.length)).getValues()[0];
-  if(String(h[5]||'').trim()!=='SALARIO_FIXO'){ a.insertColumnAfter(5); }
+  let idxSal=obterIndiceColunaParceiro_(a,'SALARIO_FIXO');
+  if(idxSal<0){
+    // Migração segura: cria a coluna do salário imediatamente após OBSERVACOES, sem perder as colunas antigas.
+    const idxObs=obterIndiceColunaParceiro_(a,'OBSERVACOES');
+    const pos=(idxObs>=0?idxObs+1:5);
+    a.insertColumnAfter(pos);
+    idxSal=pos;
+  }
+  // Garante os nomes das colunas principais, preservando os dados existentes.
   a.getRange(1,1,1,CABECALHO_PARCEIROS.length).setValues([CABECALHO_PARCEIROS]);
   a.setFrozenRows(1); return a;
 }
-function listarParceiros(){try{const cache=obterCacheDados_('parceiros');if(cache)return{sucesso:true,dados:cache};const a=obterAbaParceiros_(),v=a.getDataRange().getValues(),d=[];for(let i=1;i<v.length;i++){if(!v[i][0]||!v[i][1])continue;d.push({id:v[i][0],nome:v[i][1]||'',telefone:v[i][2]||'',documento:v[i][3]||'',observacoes:v[i][4]||'',salarioFixo:numeroFinanceiro_(v[i][5])});}salvarCacheDados_('parceiros',d,120);return{sucesso:true,dados:d};}catch(e){return{sucesso:false,mensagem:'Erro ao listar parceiros: '+e.message,dados:[]};}}
-function cadastrarParceiro(d){try{const nome=valorTexto_(d.nome);if(!nome)return{sucesso:false,mensagem:'Informe o nome do parceiro.'};const salario=numeroFinanceiro_(d.salarioFixo);if(salario<0)return{sucesso:false,mensagem:'O salário fixo não pode ser negativo.'};const a=obterAbaParceiros_(),v=a.getDataRange().getValues();let linha=-1,id='';for(let i=1;i<v.length;i++)if(String(v[i][0])===String(d.id)){linha=i+1;id=v[i][0];break;}if(linha<0)id=proximoIdGenerico_(a);const row=[id,nome,valorTexto_(d.telefone),valorTexto_(d.documento),valorTexto_(d.observacoes),salario,new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];if(linha<0)a.appendRow(row);else a.getRange(linha,1,1,CABECALHO_PARCEIROS.length).setValues([row]);limparCacheDados_('parceiros');limparCacheDados_('acertos');return{sucesso:true,mensagem:'Parceiro salvo com sucesso.',id:id};}catch(e){return{sucesso:false,mensagem:'Erro ao salvar parceiro: '+e.message};}}
+function listarParceiros(){try{
+  // Não usa cache aqui: o salário fixo precisa refletir imediatamente o cadastro atual.
+  const a=obterAbaParceiros_(),v=a.getDataRange().getValues(),idxSal=obterIndiceColunaParceiro_(a,'SALARIO_FIXO'),d=[];
+  for(let i=1;i<v.length;i++){if(!v[i][0]||!v[i][1])continue;d.push({id:v[i][0],nome:v[i][1]||'',telefone:v[i][2]||'',documento:v[i][3]||'',observacoes:v[i][4]||'',salarioFixo:numeroFinanceiro_(v[i][idxSal>=0?idxSal:5])});}
+  salvarCacheDados_('parceiros',d,30);return{sucesso:true,dados:d};
+}catch(e){return{sucesso:false,mensagem:'Erro ao listar parceiros: '+e.message,dados:[]};}}
+function cadastrarParceiro(d){try{
+  const nome=valorTexto_(d.nome);if(!nome)return{sucesso:false,mensagem:'Informe o nome do parceiro.'};
+  const salario=numeroFinanceiro_(d.salarioFixo);if(salario<0)return{sucesso:false,mensagem:'O salário fixo não pode ser negativo.'};
+  const a=obterAbaParceiros_(),v=a.getDataRange().getValues(),idxSal=obterIndiceColunaParceiro_(a,'SALARIO_FIXO');
+  let linha=-1,id='';for(let i=1;i<v.length;i++)if(String(v[i][0])===String(d.id)){linha=i+1;id=v[i][0];break;}
+  if(linha<0){id=proximoIdGenerico_(a);const row=[id,nome,valorTexto_(d.telefone),valorTexto_(d.documento),valorTexto_(d.observacoes),'',new Date(),Session.getActiveUser().getEmail()||'SISTEMA'];row[idxSal>=0?idxSal:5]=salario;if(linha<0)a.appendRow(row);}
+  else{a.getRange(linha,1,1,CABECALHO_PARCEIROS.length).setValues([(()=>{const row=v[linha-1].slice(0,CABECALHO_PARCEIROS.length);row[0]=id;row[1]=nome;row[2]=valorTexto_(d.telefone);row[3]=valorTexto_(d.documento);row[4]=valorTexto_(d.observacoes);row[idxSal>=0?idxSal:5]=salario;row[6]=row[6]||new Date();row[7]=row[7]||Session.getActiveUser().getEmail()||'SISTEMA';return row;})()]);}
+  limparCacheDados_('parceiros');limparCacheDados_('acertos');return{sucesso:true,mensagem:'Parceiro salvo com sucesso.',id:id};
+}catch(e){return{sucesso:false,mensagem:'Erro ao salvar parceiro: '+e.message};}}
 function excluirParceiro(id){try{const a=obterAbaParceiros_(),v=a.getDataRange().getValues();for(let i=1;i<v.length;i++)if(String(v[i][0])===String(id)){a.deleteRow(i+1);limparCacheDados_('parceiros');return{sucesso:true,mensagem:'Parceiro excluído com sucesso.'};}return{sucesso:false,mensagem:'Parceiro não encontrado.'};}catch(e){return{sucesso:false,mensagem:'Erro ao excluir parceiro: '+e.message};}}
 
 // =====================================================
@@ -1296,12 +1323,12 @@ function obterAbaAcertos_(){const p=SpreadsheetApp.openById(ID_PLANILHA);let a=p
 function normalizarMesRef_(m){const x=String(m||'').trim();return /^\d{4}-\d{2}$/.test(x)?x:Utilities.formatDate(new Date(),Session.getScriptTimeZone(),'yyyy-MM');}
 function garantirSalariosAcerto_(mes){
   const a=obterAbaAcertos_(), mesRef=normalizarMesRef_(mes);
-  const pAba=obterAbaParceiros_(), pv=pAba.getDataRange().getValues();
+  const pAba=obterAbaParceiros_(), pv=pAba.getDataRange().getValues(), idxSal=obterIndiceColunaParceiro_(pAba,'SALARIO_FIXO');
   const parceiros=[];
   for(let i=1;i<pv.length;i++){
     const nome=String(pv[i][1]||'').trim();
     if(!nome) continue;
-    const salario=numeroFinanceiro_(pv[i][5]);
+    const salario=numeroFinanceiro_(pv[i][idxSal>=0?idxSal:5]);
     parceiros.push({nome,salario});
   }
   const v=a.getDataRange().getValues();
