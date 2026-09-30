@@ -80,12 +80,13 @@ button:disabled{opacity:.6;cursor:not-allowed}
 .status-card-opcao{position:relative}
 .status-card-opcao input{position:absolute;opacity:0;pointer-events:none}
 .status-card-opcao label{display:block;padding:8px 10px;border:2px solid #ccc;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;background:white;transition:.2s}
+.seguro-box{margin-top:12px;padding:12px;border:1px solid #ddd;border-radius:9px;background:#fafafa}.seguro-switch{display:flex;align-items:center;gap:10px;font-weight:bold;font-size:13px}.seguro-switch input{width:20px;height:20px}.seguro-status{font-size:12px;color:#666;margin-top:4px}
 .status-card-opcao input:checked+label.status-contatado{background:#e0b400!important;color:#222!important;border-color:#b38f00!important;box-shadow:0 0 0 3px rgba(224,180,0,.25);transform:scale(1.05)}
 .status-card-opcao input:checked+label.status-fechado{background:#2e9b4b!important;color:white!important;border-color:#207638!important;box-shadow:0 0 0 3px rgba(46,155,75,.25);transform:scale(1.05)}
 .status-card-opcao input:checked+label.status-sem-interesse{background:#d32f2f!important;color:white!important;border-color:#a82020!important;box-shadow:0 0 0 3px rgba(211,47,47,.25);transform:scale(1.05)}
 .status-card-opcao input:checked+label.status-cancelado{background:#8e63b6!important;color:white!important;border-color:#6d4791!important;box-shadow:0 0 0 3px rgba(142,99,182,.25);transform:scale(1.05)}
 /* FILTROS E RESUMO */
-.filtros-rodeios{display:grid;grid-template-columns:minmax(260px,1fr) 220px;gap:12px;margin:-5px 0 20px}
+.filtros-rodeios{display:grid;grid-template-columns:minmax(260px,1fr) 220px 220px;gap:12px;margin:-5px 0 20px}
 .filtro-busca{position:relative}.filtro-busca input{width:100%;padding:13px 15px 13px 42px;border:1px solid #ccc;border-radius:9px;font-size:15px;background:#fff}.filtro-busca span{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:#777}
 .filtro-status select{width:100%;padding:13px 15px;border:1px solid #ccc;border-radius:9px;font-size:15px;background:#fff}
 .resumo-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:18px}.resumo-card{border:1px solid #ddd;border-radius:12px;padding:16px;background:#fafafa;text-align:center}.resumo-card .resumo-numero{display:block;font-size:28px;font-weight:800;line-height:1.1;margin-bottom:5px}.resumo-card .resumo-label{font-size:13px;font-weight:bold;color:#555}.resumo-card.c1{background:#f7f7f7}.resumo-card.c2{background:#fff9d6}.resumo-card.c3{background:#e8f7e8}.resumo-card.c4{background:#ffe8e8}.resumo-card.c5{background:#f1f1f1}.resumo-card.c6{background:#f2eafa}.resultado-filtro{margin:-8px 0 15px;color:#666;font-size:13px;font-weight:bold}
@@ -371,6 +372,7 @@ definirCampoContrato('contratoEndereco',r.enderecoEvento||'');
 <div class="filtro-status"><select id="filtroStatusRodeios">
 <option value="Todos">📋 Todos os status</option><option value="">⚪ Sem status</option><option value="Contatado">🟡 Contatado</option><option value="Fechado">🟢 Fechado</option><option value="Sem interesse">🔴 Sem interesse</option><option value="Cancelado">🟣 Cancelado</option>
 </select></div>
+<div class="filtro-seguro"><select id="filtroSeguroRodeios"><option value="Todos">🛡️ Todos os seguros</option><option value="ofertado">✅ Seguro ofertado</option><option value="nao_ofertado">⬜ Seguro não ofertado</option></select></div>
 </div>
 <div id="resultadoFiltro" class="resultado-filtro"></div>
 <div id="listaRodeios" class="lista-rodeios">
@@ -659,7 +661,8 @@ document.getElementById('nomeUsuario').textContent=resultado.nome||resultado.usu
 aplicarPermissoesUsuario(resultado);
 configurarFiltros();
 configurarFiltrosFinanceiro();
-Promise.all([carregarRodeios(), carregarParceiros(), carregarContratos()]).then(async function(){ try{ const vr=await chamarAPI('versao_comissoes'); if(vr&&vr.sucesso) ultimaVersaoComissoes=String(vr.versao||'0'); }catch(e){} }).catch(function(e){console.error(e);});
+const cargasIniciais = usuarioEhSeguro ? [carregarRodeios()] : [carregarRodeios(), carregarParceiros(), carregarContratos()];
+Promise.all(cargasIniciais).then(async function(){ try{ if(!usuarioEhSeguro){ const vr=await chamarAPI('versao_comissoes'); if(vr&&vr.sucesso) ultimaVersaoComissoes=String(vr.versao||'0'); } }catch(e){} }).catch(function(e){console.error(e);});
 
 },500);
 
@@ -689,19 +692,24 @@ botao.textContent='ENTRAR';
 function aplicarPermissoesUsuario(usuario){
   const nivel=String((usuario&&usuario.nivel)||'').trim().toUpperCase();
   const ehAdmin=['ADMIN','ADMINISTRADOR','ADMINISTRADOR(A)'].includes(nivel);
+  const ehSeguro=['SEGURO','VENDEDOR_SEGURO','OFERTANTE_SEGURO'].includes(nivel);
   usuarioEhAdmin=ehAdmin;
-  const permitidas=['inicio','rodeios','contratos','comissoes'];
+  usuarioEhSeguro=ehSeguro;
+  const permitidas=ehSeguro?['inicio','rodeios']:['inicio','rodeios','contratos','comissoes'];
   document.querySelectorAll('.menu button[onclick*="abrirPagina"]').forEach(function(btn){
     const m=btn.getAttribute('onclick').match(/abrirPagina\('([^']+)'/);
     if(!m)return;
     const nome=m[1];
-    if(nome==='inicio'||ehAdmin){btn.style.display='';return;}
+    if(ehAdmin){btn.style.display='';return;}
     btn.style.display=permitidas.includes(nome)?'':'none';
   });
-  // Se for visualizador, começa sempre em Início.
   const campoSalario=document.getElementById('campoSalarioFixoParceiro');
   if(campoSalario)campoSalario.style.display=ehAdmin?'':'none';
-  if(!ehAdmin){
+  const formRodeio=document.getElementById('formRodeio');
+  if(formRodeio && formRodeio.closest('.card')) formRodeio.closest('.card').style.display=ehSeguro?'none':'';
+  if(ehSeguro){
+    abrirPagina('inicio',document.querySelector('.menu button[onclick*="abrirPagina(\'inicio\'"]'));
+  } else if(!ehAdmin){
     abrirPagina('inicio',document.querySelector('.menu button[onclick*="abrirPagina(\'inicio\'"]'));
   }
 }
@@ -765,9 +773,11 @@ function aplicarFiltrosRodeios(){
   const busca=normalizarBusca(document.getElementById('buscaRodeios')?.value||'');
   const elementoFiltro=document.getElementById('filtroStatusRodeios');
   const filtro=elementoFiltro ? elementoFiltro.value : 'Todos';
-  const filtrados=rodeiosCache.filter(r=>{const texto=normalizarBusca([r.nomeEvento,r.organizador,r.cidade,r.estado].join(' '));return (!busca||texto.includes(busca))&&(filtro==='Todos'||(filtro===''?!r.status:r.status===filtro));});
+  const elementoSeguro=document.getElementById('filtroSeguroRodeios');
+  const filtroSeguro=elementoSeguro ? elementoSeguro.value : 'Todos';
+  const filtrados=rodeiosCache.filter(r=>{const texto=normalizarBusca([r.nomeEvento,r.organizador,r.cidade,r.estado].join(' '));const seguroOfertado=!!r.seguroOfertado;const passaSeguro=filtroSeguro==='Todos'||(filtroSeguro==='ofertado'&&seguroOfertado)||(filtroSeguro==='nao_ofertado'&&!seguroOfertado);return (!busca||texto.includes(busca))&&(filtro==='Todos'||(filtro===''?!r.status:r.status===filtro))&&passaSeguro;});
   renderizarRodeios(filtrados);
-  const resultado=document.getElementById('resultadoFiltro');if(resultado)resultado.textContent=(busca||filtro!=='Todos')?`Mostrando ${filtrados.length} de ${rodeiosCache.length} rodeio(s).`:'';
+  const resultado=document.getElementById('resultadoFiltro');if(resultado)resultado.textContent=(busca||filtro!=='Todos'||filtroSeguro!=='Todos')?`Mostrando ${filtrados.length} de ${rodeiosCache.length} rodeio(s).`:'';
 }
 function renderizarRodeios(dados){
   const lista=document.getElementById('listaRodeios');if(!lista)return;
@@ -778,16 +788,45 @@ function renderizarRodeios(dados){
     if(status==='Contatado')classeStatusCard='status-contatado-card';if(status==='Fechado')classeStatusCard='status-fechado-card';if(status==='Sem interesse')classeStatusCard='status-sem-interesse-card';if(status==='Cancelado')classeStatusCard='status-cancelado-card';
     card.className='rodeio-card '+classeStatusCard;card.setAttribute('data-rodeio-id',String(rodeio.id));
     const imagem=rodeio.fotoProgramacao?'<img class="programacao-preview" src="'+escaparHTML(rodeio.fotoProgramacao)+'" alt="Programação" loading="lazy">':'';
-    const statusId='status_'+rodeio.id;
-    let statusHTML='<div class="status-card"><span class="status-card-titulo">📌 Status do contato</span><div class="status-card-opcoes">';
-    statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_contatado" value="Contatado" '+(status==='Contatado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_contatado" class="status-contatado">🟡 Contatado</label></div>';
-    statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_fechado" value="Fechado" '+(status==='Fechado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_fechado" class="status-fechado">🟢 Fechado</label></div>';
-    statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_seminteresse" value="Sem interesse" '+(status==='Sem interesse'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_seminteresse" class="status-sem-interesse">🔴 Sem interesse</label></div>';
-    statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_cancelado" value="Cancelado" '+(status==='Cancelado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_cancelado" class="status-cancelado">🟣 Cancelado</label></div></div></div>';
-    card.innerHTML=imagem+'<div class="rodeio-conteudo"><h3>'+escaparHTML(rodeio.nomeEvento)+'</h3><div class="rodeio-info"><strong>Organizador:</strong> '+escaparHTML(rodeio.organizador)+'<br><strong>Local:</strong> '+escaparHTML(rodeio.cidade)+' - '+escaparHTML(rodeio.estado)+'<br><strong>Data:</strong> '+escaparHTML(rodeio.dataInicio)+' até '+escaparHTML(rodeio.dataFim)+'<br><strong>Telefone:</strong> '+escaparHTML(rodeio.telefone||'-')+'</div>'+statusHTML+'<div class="rodeio-acoes"><button onclick="editarRodeio('+rodeio.id+')">✏️ Editar</button>'+(status==='Fechado'?'<button onclick="abrirContratoDoRodeio('+rodeio.id+')">📄 CONTRATO</button>':'')+'<button class="btn-perigo" onclick="excluirRodeio('+rodeio.id+')">🗑️ Excluir</button></div></div>';
+    let statusHTML='';
+    if(!usuarioEhSeguro){
+      const statusId='status_'+rodeio.id;
+      statusHTML='<div class="status-card"><span class="status-card-titulo">📌 Status do contato</span><div class="status-card-opcoes">';
+      statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_contatado" value="Contatado" '+(status==='Contatado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_contatado" class="status-contatado">🟡 Contatado</label></div>';
+      statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_fechado" value="Fechado" '+(status==='Fechado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_fechado" class="status-fechado">🟢 Fechado</label></div>';
+      statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_seminteresse" value="Sem interesse" '+(status==='Sem interesse'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_seminteresse" class="status-sem-interesse">🔴 Sem interesse</label></div>';
+      statusHTML+='<div class="status-card-opcao"><input type="radio" name="'+statusId+'" id="'+statusId+'_cancelado" value="Cancelado" '+(status==='Cancelado'?'checked':'')+' onchange="alterarStatusRodeio('+rodeio.id+', this.value)"><label for="'+statusId+'_cancelado" class="status-cancelado">🟣 Cancelado</label></div></div></div>';
+    }
+    const seguroMarcado=!!rodeio.seguroOfertado;
+    const seguroHTML='<div class="seguro-box"><label class="seguro-switch"><input type="checkbox" '+(seguroMarcado?'checked ':'')+(usuarioEhSeguro?'':'disabled ')+'onchange="alterarSeguroOfertado('+rodeio.id+', this.checked)"> <span>🛡️ Seguro ofertado</span></label><div class="seguro-status">'+(seguroMarcado?'✅ Seguro já ofertado neste evento.':'⬜ Seguro ainda não ofertado.')+(usuarioEhSeguro?'':' <span style="color:#888">(somente usuário de seguros altera)</span>')+'</div></div>';
+    const acoes=usuarioEhSeguro?'':'<div class="rodeio-acoes"><button onclick="editarRodeio('+rodeio.id+')">✏️ Editar</button>'+(status==='Fechado'?'<button onclick="abrirContratoDoRodeio('+rodeio.id+')">📄 CONTRATO</button>':'')+'<button class="btn-perigo" onclick="excluirRodeio('+rodeio.id+')">🗑️ Excluir</button></div>';
+    card.innerHTML=imagem+'<div class="rodeio-conteudo"><h3>'+escaparHTML(rodeio.nomeEvento)+'</h3><div class="rodeio-info"><strong>Organizador:</strong> '+escaparHTML(rodeio.organizador)+'<br><strong>Local:</strong> '+escaparHTML(rodeio.cidade)+' - '+escaparHTML(rodeio.estado)+'<br><strong>Data:</strong> '+escaparHTML(rodeio.dataInicio)+' até '+escaparHTML(rodeio.dataFim)+'<br><strong>Telefone:</strong> '+escaparHTML(rodeio.telefone||'-')+'</div>'+statusHTML+seguroHTML+acoes+'</div>';
     fragment.appendChild(card);
   });lista.innerHTML='';lista.appendChild(fragment);
 }
+
+async function alterarSeguroOfertado(id,ofertado){
+  const item=rodeiosCache.find(function(r){return String(r.id)===String(id);});
+  if(!item)return;
+  if(!usuarioEhSeguro){return;}
+  const anterior=!!item.seguroOfertado;
+  item.seguroOfertado=!!ofertado;
+  try{
+    const resultado=await chamarAPI('alterarseguroofertado',{id:id,ofertado:!!ofertado});
+    if(!resultado||!resultado.sucesso){
+      item.seguroOfertado=anterior;
+      aplicarFiltrosRodeios();
+      alert((resultado&&resultado.mensagem)||'Não foi possível atualizar o seguro.');
+      return;
+    }
+    aplicarFiltrosRodeios();
+  }catch(e){
+    item.seguroOfertado=anterior;
+    aplicarFiltrosRodeios();
+    alert('Erro ao atualizar o marcador de seguro.');
+  }
+}
+
 async function carregarRodeios(forcar=false){
   const lista=document.getElementById('listaRodeios');if(!lista)return;
   if(!forcar&&rodeiosCache.length){atualizarResumo();aplicarFiltrosRodeios();return;}
@@ -806,7 +845,7 @@ async function carregarRodeios(forcar=false){
     }
   }
 }
-function configurarFiltros(){const busca=document.getElementById('buscaRodeios'),status=document.getElementById('filtroStatusRodeios');if(busca&&!busca.dataset.configurado){busca.dataset.configurado='1';busca.addEventListener('input',aplicarFiltrosRodeios);}if(status&&!status.dataset.configurado){status.dataset.configurado='1';status.addEventListener('change',aplicarFiltrosRodeios);}}
+function configurarFiltros(){const busca=document.getElementById('buscaRodeios'),status=document.getElementById('filtroStatusRodeios'),seguro=document.getElementById('filtroSeguroRodeios');if(busca&&!busca.dataset.configurado){busca.dataset.configurado='1';busca.addEventListener('input',aplicarFiltrosRodeios);}if(status&&!status.dataset.configurado){status.dataset.configurado='1';status.addEventListener('change',aplicarFiltrosRodeios);}if(seguro&&!seguro.dataset.configurado){seguro.dataset.configurado='1';seguro.addEventListener('change',aplicarFiltrosRodeios);}}
 configurarFiltros();
 
 /* CAMPOS DO RODEIO */
@@ -1390,6 +1429,7 @@ document.getElementById('formContrato').addEventListener('submit',async function
 
 
 let usuarioEhAdmin=false;
+let usuarioEhSeguro=false;
 let comissoesCache=[];
 let salariosPendentesCache=[];
 let carregandoComissoes=false;

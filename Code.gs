@@ -38,8 +38,19 @@ function perfilEhAdmin(nivel) {
   return n === 'ADMIN' || n === 'ADMINISTRADOR' || n === 'ADMINISTRADOR(A)';
 }
 
+function perfilEhSeguro(nivel) {
+  const n = String(nivel || '').trim().toUpperCase();
+  return n === 'SEGURO' || n === 'VENDEDOR_SEGURO' || n === 'OFERTANTE_SEGURO';
+}
+
 function acaoPermitidaPorPerfil(acao, nivel) {
   if (perfilEhAdmin(nivel)) return true;
+
+  // Perfil SEGURO: somente Início/Rodeios e alteração do marcador de seguro.
+  if (perfilEhSeguro(nivel)) {
+    const permitidasSeguro = ['listarrodeios','alterarseguroofertado'];
+    return permitidasSeguro.indexOf(String(acao || '').toLowerCase()) !== -1;
+  }
 
   // O perfil VISUALIZADOR pode consultar e preencher Rodeios, Contratos e Comissões.
   const permitidasVisualizador = [
@@ -162,6 +173,13 @@ function doGet(e) {
       ),
       params.callback
     );
+  }
+
+  if (acao === 'alterarseguroofertado') {
+    if (!perfilEhSeguro(sessao.nivel)) {
+      return respostaJSONP({sucesso:false,mensagem:'Somente o usuário de seguros pode alterar este marcador.'}, params.callback);
+    }
+    return respostaJSONP(alterarSeguroOfertado(params.id, params.ofertado), params.callback);
   }
 
   if (acao === 'excluirrodeio') {
@@ -411,7 +429,7 @@ function garantirColunaStatus() {
   const cabecalhos = [
     'ID','NOME_EVENTO','ORGANIZADOR','CIDADE','ESTADO','DATA_INICIO','DATA_FIM',
     'TELEFONE','FOTO_PROGRAMACAO','DATA_CADASTRO','USUARIO_CADASTRO','STATUS',
-    'TIPO_DOCUMENTO_EVENTO','CPF_CNPJ_EVENTO','ENDERECO_EVENTO','NOME_DOCUMENTO_EVENTO','TIPO_CONTATO','PARCEIRO_ID'
+    'TIPO_DOCUMENTO_EVENTO','CPF_CNPJ_EVENTO','ENDERECO_EVENTO','NOME_DOCUMENTO_EVENTO','TIPO_CONTATO','PARCEIRO_ID','SEGURO_OFERTADO'
   ];
 
   if (aba.getMaxColumns() < cabecalhos.length) {
@@ -531,7 +549,8 @@ function listarRodeios() {
         enderecoEvento: valores[i][14] || '',
         nomeDocumentoEvento: valores[i][15] || '',
         tipoContato: valores[i][16] || 'Organizador',
-        parceiroId: valores[i][17] || ''
+        parceiroId: valores[i][17] || '',
+        seguroOfertado: valores[i][18] === true || String(valores[i][18] || '').trim().toUpperCase() === 'SIM' || String(valores[i][18] || '').trim().toUpperCase() === 'TRUE'
       });
     }
 
@@ -743,7 +762,8 @@ function cadastrarRodeio(dados) {
       String(dados.enderecoEvento || '').trim(),
       String(dados.nomeDocumentoEvento || '').trim(),
       String(dados.tipoContato || 'Organizador').trim(),
-      String(dados.parceiroId || '').trim()
+      String(dados.parceiroId || '').trim(),
+      false
     ]);
     salvarIdempotencia_('rodeio', requestId, novoID);
     limparCacheDados_('rodeios');
@@ -848,6 +868,8 @@ function editarRodeio(dados) {
           String(dados.tipoContato || valores[i][16] || 'Organizador').trim(),
           String(dados.parceiroId || valores[i][17] || '').trim()
         ]]);
+        // O marcador de seguro não é alterado pela edição normal do rodeio.
+        if (aba.getMaxColumns() >= 19) aba.getRange(linha, 19).setValue(valores[i][18] === true || String(valores[i][18] || '').trim().toUpperCase() === 'SIM' || String(valores[i][18] || '').trim().toUpperCase() === 'TRUE');
         limparCacheDados_('rodeios');
 
         return {
@@ -941,6 +963,31 @@ function alterarStatusRodeio(id, status) {
   }
 }
 
+
+// =====================================================
+// MARCADOR DE SEGURO OFERTADO
+// =====================================================
+function alterarSeguroOfertado(id, ofertado) {
+  try {
+    const aba = garantirColunaStatus();
+    if (!aba) return {sucesso:false,mensagem:'A aba RODEIOS não foi encontrada.'};
+    const numeroId = Number(id);
+    if (!numeroId) return {sucesso:false,mensagem:'ID do rodeio não informado.'};
+    const valores = aba.getDataRange().getValues();
+    for (let i=1;i<valores.length;i++) {
+      if (Number(valores[i][0]) === numeroId) {
+        const linha=i+1;
+        const valor = String(ofertado || '').toLowerCase() === 'true' || String(ofertado || '').toLowerCase() === '1' || String(ofertado || '').toLowerCase() === 'sim';
+        aba.getRange(linha,19).setValue(valor);
+        limparCacheDados_('rodeios');
+        return {sucesso:true, ofertado:valor, mensagem: valor ? 'Seguro marcado como ofertado.' : 'Seguro desmarcado.'};
+      }
+    }
+    return {sucesso:false,mensagem:'Rodeio não encontrado.'};
+  } catch (erro) {
+    return {sucesso:false,mensagem:'Erro ao atualizar seguro: '+erro.message};
+  }
+}
 
 // =====================================================
 // EXCLUIR RODEIO
